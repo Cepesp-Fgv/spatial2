@@ -1,4 +1,4 @@
 version: 1.0.0
 files:
-	source: /
-	destination: /srv/shiny-server/spatial2
+    source: /
+    destination: /srv/shiny-server/spatial2
