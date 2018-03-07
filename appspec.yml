@@ -3,3 +3,7 @@ os: linux
 files:
   - source: /
     destination: /srv/shiny-server/spatial2
+hooks:
+   AfterInstall:
+    - location: .scripts/clear_cache.sh
+      runas: root
