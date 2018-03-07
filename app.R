@@ -8,6 +8,7 @@ library(spdep)
 library(scales)
 library(leaflet)
 library(rgeos)
+library(raster)
 library(maptools)
 library(ggplot2)
 library(httr)
@@ -17,7 +18,6 @@ library(digest)
 library(shinythemes)
 library(dplyr)
 library(DT)
-library(raster)
 
 url <- "http://api.cepesp.io/api/consulta/tse"
 
@@ -42,7 +42,7 @@ colnames(d_uniq)[colnames(d_uniq)=="winner"] <- "Result"
 #Candidate <- "PASTOR JONY"
 
 ### Load state voting totals
-ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
+ui <- navbarPage("Spatial Voting New",id="nav",theme=shinytheme("flatly"),
                  tabPanel("Map",div(class="outer",
                                     tags$head(
                                       includeCSS("styles.css")
