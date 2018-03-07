@@ -8,7 +8,6 @@ library(spdep)
 library(scales)
 library(leaflet)
 library(rgeos)
-library(raster)
 library(maptools)
 library(ggplot2)
 library(httr)
@@ -18,6 +17,7 @@ library(digest)
 library(shinythemes)
 library(dplyr)
 library(DT)
+library(raster)
 
 url <- "http://api.cepesp.io/api/consulta/tse"
 
