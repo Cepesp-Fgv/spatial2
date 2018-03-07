@@ -81,7 +81,7 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                  ),
                  tabPanel("Clusters",
                           column(width=4,""),
-                          column(width=4,htmlOutput("Num_clusters"),tableOutput("Clusters_agg"),tableOutput("Clusters")),
+                          column(width=4,htmlOutput("Num_clusters"),h4("Cluster Summary"),dataTableOutput("Clusters_agg"),h4("Municipalities by Cluster"),dataTableOutput("Clusters")),
                           column(width=4,leafletOutput("map_clusters",width="500px",height="400px"))
                  ),
                  tabPanel("Extremes",
@@ -339,8 +339,8 @@ server <- function(input, output, session) {
       #num_clust <- length(clusters_sp)
       
       for (i in 1:num_clust){
-        clusters_list_temp[[i]] <- intersect(dz5()[dz5()$category=="High-High",],clusters_sp()[i])
-        #clusters_list_temp[[i]] <- intersect(dz5[dz5$category=="High-High",],clusters_sp[i])
+        clusters_list_temp[[i]] <- raster::intersect(dz5()[dz5()$category=="High-High",],clusters_sp()[i])
+        #clusters_list_temp[[i]] <- raster::intersect(dz5[dz5$category=="High-High",],clusters_sp[i])
         clusters_list_temp[[i]]@data$Cluster_Num <- i
       }
       clusters_list <- clusters_list_temp
@@ -369,25 +369,27 @@ server <- function(input, output, session) {
     }
   })
   
-  output$Clusters <- renderTable({
+  output$Clusters <- renderDataTable({
     if (!(is.null(clusters()))){
       table_temp <- cluster_table()
       #table_temp <- cluster_table
       colnames(table_temp) <- c("Cluster Number","Municipality","Votes","% Candidate Votes","LQ")
       table_temp[,"Votes"] <- round(table_temp[,"Votes"],0)
       table_temp[,"% Candidate Votes"] <- round(table_temp[,"% Candidate Votes"],1)
-      Clusters <- table_temp
+      Clusters <- as.data.table(table_temp)
+      datatable(Clusters, rownames=TRUE, options=list(dom = 't'), selection='single', style = 'bootstrap', class = 'table-bordered')
     }
   })
   
-  output$Clusters_agg <- renderTable({
+  output$Clusters_agg <- renderDataTable({
     if (!(is.null(clusters()))){
       agg <- as.data.frame(as.data.table(cluster_table())[,.(sum(QTDE_VOTOS), sum(pct_votes_from_mun)),by=Cluster_Num])
       #agg <- as.data.frame(as.data.table(cluster_table)[,.(sum(QTDE_VOTOS), sum(pct_votes_from_mun)),by=Cluster_Num])
       colnames(agg) <- c("Cluster Number","Total Votes Received","Total % Candidate Votes")
       agg[,"Total Votes Received"] <- round(agg[,"Total Votes Received"],0)
       agg[,"Total % Candidate Votes"] <- round(agg[,"Total % Candidate Votes"],1)
-      Clusters_agg <- agg
+      Clusters_agg <- as.data.table(agg)
+      datatable(Clusters_agg, rownames=TRUE, options=list(dom = 't'), selection='single', style = 'bootstrap', class = 'table-bordered')
     }
   })
   
