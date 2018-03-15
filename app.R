@@ -42,7 +42,7 @@ colnames(d_uniq)[colnames(d_uniq)=="winner"] <- "Result"
 #Candidate <- "PASTOR JONY"
 
 ### Load state voting totals
-ui <- navbarPage("Spatial Voting New",id="nav",theme=shinytheme("flatly"),
+ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                  tabPanel("Map",div(class="outer",
                                     tags$head(
                                       includeCSS("styles.css")
