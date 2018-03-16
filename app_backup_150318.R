@@ -39,8 +39,7 @@ colnames(d_uniq)[colnames(d_uniq)=="winner"] <- "Result"
 #Year <- 2014
 #State <- "SE"
 #Party <-"PRB"
-#Candidate <- "JOANA DARC"
-#Indicator <- "Vote Share %"
+#Candidate <- "PASTOR JONY"
 
 ### Load state voting totals
 ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
@@ -93,7 +92,7 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                  absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                draggable = FALSE, top = 120, left = 10, right = "auto", bottom = "auto",
                                width = 330, height = "auto",
-                               h4("Electoral Results for Federal Deputies"),
+                               h4("QL Score by Federal Deputy"),
                                selectInput("Year", 
                                            label = "Choose a Year to display",
                                            choices = c(1998,2002,2006,2010,2014),
@@ -107,16 +106,19 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                            choices = c("PRB","PP","PDT","PT","PTB","PMDB","PSTU","PSL","REDE","PTN","PSC","PCB","PR","PPS","DEM","PSDC","PRTB","PCO","NOVO","PHS","PMN","PMB","PTC","PSB","PV","PRP","PSDB","PSOL","PEN","PPL","PSD","PCdoB","PTdoB","SD","PROS"),
                                            selected = 15),
                                uiOutput("cand"),
-                               radioButtons("Indicator",
-                                            label = "Indicator:",
-                                            choices = list("QL Measure","Vote Share %"),
-                                            selected = "QL Measure"),
-                               HTML(paste0("<hr> </hr>")),
+                               radioButtons("Colours",
+                                            label = "Colour Scheme Focus on:",
+                                            choices = list("Areas of Overconcentration","Diverging Around QL=1"),
+                                            selected = "Areas of Overconcentration"),
                                htmlOutput("Result"),
                                htmlOutput("G_Index"),
                                htmlOutput("moran")
                  )
 )
+
+
+
+
 
 server <- function(input, output, session) {
   
@@ -177,8 +179,8 @@ server <- function(input, output, session) {
     #d <- merge(d,state_totals,by="UF")
     
     d[,Tot_Deputado := sum(QTDE_VOTOS),by=.(ANO_ELEICAO,UF,NUMERO_CANDIDATO)]
-    d[,Mun_Vote_Share := (QTDE_VOTOS/Tot_Mun)*100]
-    
+    d[,Mun_Vote_Share := QTDE_VOTOS/Tot_Mun]
+     
     #### G-Index Calcs
     d[,G_temp := (QTDE_VOTOS/Tot_Deputado - Tot_Mun/Tot_State)^2]
     d[,G_Index := sum(G_temp),by=.(ANO_ELEICAO,UF,NUMERO_CANDIDATO)] #Correct? CHECK
@@ -280,20 +282,19 @@ server <- function(input, output, session) {
   })
   
   output$map <- renderLeaflet({
-    if (input$Indicator=="QL Measure"){
-          pal <- colorBin(palette=c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),domain=c(0,1000), bins=c(0,0.01,1,5,10,50,1000), na.color="white")
+    if (input$Colours=="Areas of Overconcentration"){
+      pal <- colorBin(palette=c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),domain=c(0,1000), bins=c(0,0.01,1,5,10,50,1000), na.color="white")
     } else {
-      pal <- colorNumeric(palette=c("white","red"),domain=c(0,max(dz5()@data[,"Mun_Vote_Share"],na.rm=TRUE)), na.color="white") 
-      #pal <- colorNumeric(palette=c("white","red"),domain=c(0,max(dz5@data[,"Mun_Vote_Share"],na.rm=TRUE)), na.color="white") 
+      pal <- colorBin(palette=c("light blue","white","dark red"),domain=c(0,1000), bins=c(1000,16,8,2,1,0.5,0.1,0.05,0), na.color="white")
     }
     
-    popup_text <- paste0(dz5()@data[,"NOME"],"<br> Valid Votes: ",dz5()@data[,"Tot_Mun"]," (",round((dz5()@data[,"Tot_Mun"]/dz5()@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dz5()@data[,"NOME_URNA_CANDIDATO"]," received ",dz5()@data[,"QTDE_VOTOS"]," votes (",round((dz5()@data[,"QTDE_VOTOS"]/dz5()@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Measure: ",round(dz5()@data[,"LQ"],3))
-    #popup_text <- paste0(dz5@data[,"NOME"],"<br> Valid Votes: ",dz5@data[,"Tot_Mun"]," (",round((dz5@data[,"Tot_Mun"]/dz5@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dz5@data[,"NOME_URNA_CANDIDATO"]," received ",dz5@data[,"QTDE_VOTOS"]," votes (",round((dz5@data[,"QTDE_VOTOS"]/dz5@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Measure: ",round(dz5@data[,"LQ"],3))
+    popup_text <- paste0(dz5()@data[,"NOME"],"<br> Valid Votes: ",dz5()@data[,"Tot_Mun"]," (",round((dz5()@data[,"Tot_Mun"]/dz5()@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dz5()@data[,"NOME_URNA_CANDIDATO"]," received ",dz5()@data[,"QTDE_VOTOS"]," votes (",round((dz5()@data[,"QTDE_VOTOS"]/dz5()@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Score: ",round(dz5()@data[,"LQ"],3))
+    #popup_text <- paste0(dz5@data[,"NOME"],"<br> Valid Votes: ",dz5@data[,"Tot_Mun"]," (",round((dz5@data[,"Tot_Mun"]/dz5@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dz5@data[,"NOME_URNA_CANDIDATO"]," received ",dz5@data[,"QTDE_VOTOS"]," votes (",round((dz5@data[,"QTDE_VOTOS"]/dz5@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Score: ",round(dz5@data[,"LQ"],3))
     
-    popup_text_hihi <- paste0(dz5()@data[dz5()@data$category=="High-High","NOME"],"<br> Valid Votes: ",dz5()@data[dz5()@data$category=="High-High","Tot_Mun"]," (",round((dz5()@data[dz5()@data$category=="High-High","Tot_Mun"]/dz5()@data[dz5()@data$category=="High-High","Tot_State"])*100,1),"% of State Total)","<br>",dz5()@data[,"NOME_URNA_CANDIDATO"]," received ",dz5()@data[dz5()@data$category=="High-High","QTDE_VOTOS"]," votes (",round((dz5()@data[dz5()@data$category=="High-High","QTDE_VOTOS"]/dz5()@data[dz5()@data$category=="High-High","Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Measure: ",round(dz5()@data[dz5()@data$category=="High-High","LQ"],3))
+    popup_text_hihi <- paste0(dz5()@data[dz5()@data$category=="High-High","NOME"],"<br> Valid Votes: ",dz5()@data[dz5()@data$category=="High-High","Tot_Mun"]," (",round((dz5()@data[dz5()@data$category=="High-High","Tot_Mun"]/dz5()@data[dz5()@data$category=="High-High","Tot_State"])*100,1),"% of State Total)","<br>",dz5()@data[,"NOME_URNA_CANDIDATO"]," received ",dz5()@data[dz5()@data$category=="High-High","QTDE_VOTOS"]," votes (",round((dz5()@data[dz5()@data$category=="High-High","QTDE_VOTOS"]/dz5()@data[dz5()@data$category=="High-High","Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Score: ",round(dz5()@data[dz5()@data$category=="High-High","LQ"],3))
     
-    leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp(),fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dz5(), layerId=dz5()@data[,switch(input$Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dz5()@data[,switch(input$Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")]), popup=popup_text) %>% addLegend(position="bottomright", pal=pal,values=dz5()@data[,switch(input$Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")],opacity=0.8)  %>% addPolygons(data=dz5()[dz5()@data$category=="High-High",], layerId=dz5()@data[dz5()@data$category=="High-High",],fillOpacity=0,weight=2,color="green",stroke=TRUE,popup=popup_text_hihi)
-    #leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp,fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dz5, layerId=dz5@data[,switch(Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dz5@data[,switch(Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=dz5@data[,switch(Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")],opacity=0.8)  %>% addPolygons(data=dz5[dz5@data$category=="High-High",], layerId=dz5@data[dz5@data$category=="High-High",],fillOpacity=0,weight=3,color="green",stroke=TRUE)
+    leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp(),fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dz5(), layerId=dz5()@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dz5()@data[,"LQ"]), popup=popup_text) %>% addLegend(position="bottomright", pal=pal,values=round(dz5()@data[,"LQ"],0),opacity=0.8)  %>% addPolygons(data=dz5()[dz5()@data$category=="High-High",], layerId=dz5()@data[dz5()@data$category=="High-High",],fillOpacity=0,weight=2,color="green",stroke=TRUE,popup=popup_text_hihi)
+    #leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp,fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dz5, layerId=dz5@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dz5@data[,"LQ"]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=dz5@data[,"LQ"],opacity=0.8)  %>% addPolygons(data=dz5[dz5@data$category=="High-High",], layerId=dz5@data[dz5@data$category=="High-High",],fillOpacity=0,weight=3,color="green",stroke=TRUE)
   })
   
   clusters <- reactive({
@@ -393,7 +394,11 @@ server <- function(input, output, session) {
   })
   
   output$map_clusters <- renderLeaflet({
-    pal <- colorBin(palette=c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),domain=c(0,1000), bins=c(0,0.01,1,5,10,50,1000), na.color="white")
+    if (input$Colours=="Areas of Overconcentration"){
+      pal <- colorBin(palette=c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),domain=c(0,1000), bins=c(0,0.01,1,5,10,50,1000), na.color="white")
+    } else {
+      pal <- colorBin(palette=c("light blue","white","dark red"),domain=c(0,1000), bins=c(1000,16,8,2,1,0.5,0.1,0.05,0), na.color="white")
+    }
     
     if (!(is.null(clusters()))){
       leaflet() %>% 
@@ -437,13 +442,13 @@ server <- function(input, output, session) {
   })
   
   output$chart_LQ <- renderPlot({
-    ggplot() + geom_density(data=dz3()@data,aes(x=LQ),fill="light blue",colour=NA,alpha=0.5) + xlab("Log of QL Measure") + theme_classic() + ylab("Density") + scale_x_log10()
-    #ggplot() + geom_density(data=dz3@data,aes(x=LQ),fill="purple",colour=NA,alpha=0.5) + xlab("Log of QL Measure") + theme_classic() + ylab("Density") + scale_x_log10()
+    ggplot() + geom_density(data=dz3()@data,aes(x=LQ),fill="light blue",colour=NA,alpha=0.5) + xlab("Log of QL Score") + theme_classic() + ylab("Density") + scale_x_log10()
+    #ggplot() + geom_density(data=dz3@data,aes(x=LQ),fill="purple",colour=NA,alpha=0.5) + xlab("Log of QL Score") + theme_classic() + ylab("Density") + scale_x_log10()
   })
   
   output$chart_scatter <- renderPlot({
-    ggplot() + geom_point(aes(x=dz3()@data$Tot_Mun,y=dz3()@data$LQ),color="dark green")  + xlab("Log of Municipal Voting Population") + ylab("QL Measure") + theme_classic() + scale_x_log10()
-    #ggplot() + geom_point(aes(x=dz3@data$Tot_Mun,y=dz3@data$LQ),color="dark green")  + xlab("Log of Municipal Voting Population") + ylab("QL Measure") + theme_classic() + scale_x_log10()
+    ggplot() + geom_point(aes(x=dz3()@data$Tot_Mun,y=dz3()@data$LQ),color="dark green")  + xlab("Log of Municipal Voting Population") + ylab("LQ Score") + theme_classic() + scale_x_log10()
+    #ggplot() + geom_point(aes(x=dz3@data$Tot_Mun,y=dz3@data$LQ),color="dark green")  + xlab("Log of Municipal Voting Population") + ylab("LQ Score") + theme_classic() + scale_x_log10()
   })
 
   d_uniq_cut <- reactive({
@@ -475,8 +480,7 @@ server <- function(input, output, session) {
   })
   
   output$Note <- renderUI({
-    #note <- paste0("The <b> QL Measure <B> indicates the relative importance of a specific municipality to a candidate's total electoral support. Values greater than 1 indicate the candidate is over-dependent on the municipality and values less than 1 indicate they are under-dependent. <br> <br> The <b> G-index <b> measures the district-wide deviation from a uniform distribution of support in perfect proportion to local population. G=0 indicates a uniform rate of converting population into votes and G=1 indicates perfect concentration of electoral support. <br> The map highlights statistically significant clusters of municipalities with green borders.")
-    note <- paste0("The <b> QL Measure </b> indicates how many times more votes a candidate received in a municipality relative to uniform support across the state. It is directly proportional to vote share but rescales the data so values greater than 1 indicate the candidate is particularly dependent on that municipality.  <br> <br> The <b> G-index </b> measures the district-wide deviation from a uniform distribution of support in perfect proportion to local population. G=0 indicates a uniform rate of converting population into votes and G=1 indicates perfect concentration of electoral support. <br> <br> <b> Moran's I </b> measures spatial autocorrelation and is higher where neighbouring municipalities have similar values. <br> <br> The map highlights statistically significant spatial clusters where electoral support (QL) is concentrated with <b> green borders </b>.")
+    note <- paste0("The <b> QL Score <B> indicates the relative importance of a specific municipality to a candidate's total electoral support. Values greater than 1 indicate the candidate is over-dependent on the municipality and values less than 1 indicate they are under-dependent. <br> <br> The <b> G-index <b> measures the district-wide deviation from a uniform distribution of support in perfect proportion to local population. G=0 indicates a uniform rate of converting population into votes and G=1 indicates perfect concentration of electoral support. <br> The map highlights statistically significant clusters of municipalities with green borders.")
     HTML(note)
   })
   
@@ -558,7 +562,7 @@ server <- function(input, output, session) {
   })
   
   classify_note_text <- reactive({
-    classify_note_text <- paste0("Each point represents a <font color=\"blue\"> Candidate </font> in this election, with the size proportionate to their total number of votes received. <font color=\"red\"> Red </font> points indicate votes for the selected party. The <font color=\"green\"> Green </font> point is the selected candidate. Click on <font color=\"red\">Red </font> or <font color=\"green\"> Green </font> points to view the distribution of QL Measures for that candidate. <br> <br>")
+    classify_note_text <- paste0("Each point represents a <font color=\"blue\"> Candidate </font> in this election, with the size proportionate to their total number of votes received. <font color=\"red\"> Red </font> points indicate votes for the selected party. The <font color=\"green\"> Green </font> point is the selected candidate. Click on <font color=\"red\">Red </font> or <font color=\"green\"> Green </font> points to view the distribution of QL scores for that candidate. <br> <br>")
   })
   
   classify_note_text_2 <- reactive({
@@ -584,8 +588,8 @@ server <- function(input, output, session) {
   
   output$map_selected <- renderLeaflet({
     pal <- colorBin(palette=c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),domain=c(0,1000), bins=c(1000,50,10,5,1,0.01,0), na.color="white")
-    popup_text <- paste0(dy3()@data[,"NOME"],"<br> Valid Votes: ",dy3()@data[,"Tot_Mun"]," (",round((dy3()@data[,"Tot_Mun"]/dy3()@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dy3()@data[,"NOME_URNA_CANDIDATO"]," received ",dy3()@data[,"QTDE_VOTOS"]," votes (",round((dy3()@data[,"QTDE_VOTOS"]/dy3()@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Measure: ",round(dy3()@data[,"LQ"],3))
-    #popup_text <- paste0(dy3@data[,"NOME"],"<br> Valid Votes: ",dy3@data[,"Tot_Mun"]," (",round((dy3@data[,"Tot_Mun"]/dy3@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dy3@data[,"NOME_URNA_CANDIDATO"]," received ",dy3@data[,"QTDE_VOTOS"]," votes (",round((dy3@data[,"QTDE_VOTOS"]/dy3@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Measure: ",round(dy3@data[,"LQ"],3))
+    popup_text <- paste0(dy3()@data[,"NOME"],"<br> Valid Votes: ",dy3()@data[,"Tot_Mun"]," (",round((dy3()@data[,"Tot_Mun"]/dy3()@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dy3()@data[,"NOME_URNA_CANDIDATO"]," received ",dy3()@data[,"QTDE_VOTOS"]," votes (",round((dy3()@data[,"QTDE_VOTOS"]/dy3()@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Score: ",round(dy3()@data[,"LQ"],3))
+    #popup_text <- paste0(dy3@data[,"NOME"],"<br> Valid Votes: ",dy3@data[,"Tot_Mun"]," (",round((dy3@data[,"Tot_Mun"]/dy3@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dy3@data[,"NOME_URNA_CANDIDATO"]," received ",dy3@data[,"QTDE_VOTOS"]," votes (",round((dy3@data[,"QTDE_VOTOS"]/dy3@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Score: ",round(dy3@data[,"LQ"],3))
     leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp(),fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dy3(), layerId=dy3()@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dy3()@data[,"LQ"]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=dy3()@data[,"LQ"],opacity=0.8) 
     #leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp,fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dy3, layerId=dy3@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dy3@data[,"LQ"]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=dy3@data[,"LQ"],opacity=0.8) 
   })
@@ -713,8 +717,8 @@ server <- function(input, output, session) {
   
   output$map_selected_hi <- renderLeaflet({
     pal <- colorBin(palette=c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),domain=c(0,1000), bins=c(1000,50,10,5,1,0.01,0), na.color="white")
-    popup_text <- paste0(extreme_d()@data[,"NOME"],"<br> Valid Votes: ",extreme_d()@data[,"Tot_Mun"]," (",round((extreme_d()@data[,"Tot_Mun"]/extreme_d()@data[,"Tot_State"])*100,1),"% of State Total)","<br>",extreme_d()@data[,"NOME_URNA_CANDIDATO"]," received ",extreme_d()@data[,"QTDE_VOTOS"]," votes (",round((extreme_d()@data[,"QTDE_VOTOS"]/extreme_d()@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Measure: ",round(extreme_d()@data[,"LQ"],3))
-    #popup_text <- paste0(extreme_d@data[,"NOME"],"<br> Valid Votes: ",extreme_d@data[,"Tot_Mun"]," (",round((extreme_d@data[,"Tot_Mun"]/extreme_d@data[,"Tot_State"])*100,1),"% of State Total)","<br>",extreme_d@data[,"NOME_URNA_CANDIDATO"]," received ",extreme_d@data[,"QTDE_VOTOS"]," votes (",round((extreme_d@data[,"QTDE_VOTOS"]/extreme_d@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Measure: ",round(extreme_d@data[,"LQ"],3))
+    popup_text <- paste0(extreme_d()@data[,"NOME"],"<br> Valid Votes: ",extreme_d()@data[,"Tot_Mun"]," (",round((extreme_d()@data[,"Tot_Mun"]/extreme_d()@data[,"Tot_State"])*100,1),"% of State Total)","<br>",extreme_d()@data[,"NOME_URNA_CANDIDATO"]," received ",extreme_d()@data[,"QTDE_VOTOS"]," votes (",round((extreme_d()@data[,"QTDE_VOTOS"]/extreme_d()@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Score: ",round(extreme_d()@data[,"LQ"],3))
+    #popup_text <- paste0(extreme_d@data[,"NOME"],"<br> Valid Votes: ",extreme_d@data[,"Tot_Mun"]," (",round((extreme_d@data[,"Tot_Mun"]/extreme_d@data[,"Tot_State"])*100,1),"% of State Total)","<br>",extreme_d@data[,"NOME_URNA_CANDIDATO"]," received ",extreme_d@data[,"QTDE_VOTOS"]," votes (",round((extreme_d@data[,"QTDE_VOTOS"]/extreme_d@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Score: ",round(extreme_d@data[,"LQ"],3))
     leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp(),fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=extreme_d(), layerId=extreme_d()@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(extreme_d()@data[,"LQ"]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=extreme_d()@data[,"LQ"],opacity=0.8) 
     #leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp,fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=extreme_d, layerId=extreme_d@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(extreme_d@data[,"LQ"]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=extreme_d@data[,"LQ"],opacity=0.8) 
   })
