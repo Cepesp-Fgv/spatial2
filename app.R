@@ -95,6 +95,18 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                draggable = FALSE, top = 120, left = 10, right = "auto", bottom = "auto",
                                width = 330, height = "auto",
                                h4("Electoral Results for Federal Deputies"),
+                               selectInput("cargo", 
+                                           label = "Escolha um turno",
+                                           choices = list("Presidente" = 1,
+                                                          "Governador" = 3, 
+                                                          "Senador"    = 5,
+                                                          "Deputado Federal" = 6),
+                                           selected = 6),
+                               selectInput("turno", 
+                                           label = "Escolha um cargo",
+                                           choices = list(`1º Turno` = 1,
+                                                          `2º Turno` = 2),
+                                           selected = 1),
                                selectInput("Year", 
                                            label = "Choose a Year to display",
                                            choices = c(1998,2002,2006,2010,2014),
@@ -126,7 +138,7 @@ server <- function(input, output, session) {
     vars_state <- list("UF","ANO_ELEICAO","QTDE_VOTOS")
     names(vars_state) <- rep("selected_columns[]",length(vars_state))
     filter <- list()
-    consulta_state <- append(append(list(cached=TRUE,anos=input$Year,uf="all",agregacao_regional=2,agregacao_politica=2,cargo=6),vars_state),filter)
+    consulta_state <- append(append(list(cached=TRUE,anos=input$Year,uf="all",agregacao_regional=2,agregacao_politica=2,cargo=as.numeric(input$cargo)),vars_state),filter)
     state_temp <- content(GET(url,query=consulta_state),type="text/csv")
     state_temp <- state_temp[,c("UF","QTDE_VOTOS")]
     colnames(state_temp)[colnames(state_temp)=="QTDE_VOTOS"] <- "Tot_State"
@@ -141,7 +153,7 @@ server <- function(input, output, session) {
     vars_mun <- list("UF","ANO_ELEICAO","COD_MUN_IBGE","QTDE_VOTOS")
     names(vars_mun) <- rep("selected_columns[]",length(vars_mun))
     filter <- list("columns[0][name]"="UF","columns[0][search][value]"=input$State)
-    consulta_mun <- append(append(list(cached=TRUE,anos=input$Year,uf=input$State,agregacao_regional=6,agregacao_politica=2,cargo=6),vars_mun),filter)
+    consulta_mun <- append(append(list(cached=TRUE,anos=input$Year,uf=input$State,agregacao_regional=6,agregacao_politica=2,cargo=as.numeric(input$cargo)),vars_mun),filter)
     mun_temp <- content(GET(url,query=consulta_mun),type="text/csv")
     mun_temp <- mun_temp[,c("COD_MUN_IBGE","QTDE_VOTOS")]
     colnames(mun_temp)[colnames(mun_temp)=="QTDE_VOTOS"] <- "Tot_Mun"
@@ -153,12 +165,15 @@ server <- function(input, output, session) {
   d <- reactive({
     beginning <- Sys.time()
     withProgress(message="Please Wait...",detail="Data downloading", value=0.2,{
-    vars <- list("UF","NUMERO_PARTIDO","ANO_ELEICAO","COD_MUN_IBGE","QTDE_VOTOS","NUMERO_CANDIDATO","SIGLA_PARTIDO","NOME_URNA_CANDIDATO","DESC_SIT_TOT_TURNO")
+    vars <- list("NUM_TURNO","UF","NUMERO_PARTIDO","ANO_ELEICAO","COD_MUN_IBGE","QTDE_VOTOS","NUMERO_CANDIDATO","SIGLA_PARTIDO","NOME_URNA_CANDIDATO","DESC_SIT_TOT_TURNO")
     names(vars) <- rep("selected_columns[]",length(vars))
     filter <- list("columns[0][name]"="UF","columns[0][search][value]"=input$State,"columns[1][name]"="NUMERO_PARTIDO","columns[1][search][value]"=switch(input$Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90))
-    consulta <- append(append(list(cached=TRUE,anos = input$Year,uf=input$State,agregacao_regional=6, agregacao_politica=2, cargo=6),vars),filter)
+    consulta <- append(append(list(cached=TRUE,anos = input$Year,uf=input$State,agregacao_regional=6, agregacao_politica=2, cargo=as.numeric(input$cargo)),vars),filter)
     d <- content(GET(url,query=consulta),type="text/csv")
     incProgress(0.7, detail = "Processing Data")
+    
+    d <- d[d$NUM_TURNO == input$turno,]
+    
     d <- data.table(d)
 
     if (dim(d)[1]!=0){
@@ -283,9 +298,14 @@ server <- function(input, output, session) {
   
   output$map <- renderLeaflet({
     if (input$Indicator=="QL Measure"){
-          pal <- colorBin(palette=c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),domain=c(0,1000), bins=c(0,0.01,1,5,10,50,1000), na.color="white")
+          pal <- colorBin(palette  = c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),
+                          domain   = c(0,1000),
+                          bins     = c(0,0.01,1,5,10,50,1000),
+                          na.color = "white")
     } else {
-      pal <- colorNumeric(palette=c("white","red"),domain=c(0,max(dz5()@data[,"Mun_Vote_Share"],na.rm=TRUE)), na.color="white") 
+      pal <- colorNumeric(palette  = c("white","red"),
+                          domain   = c(0,max(dz5()@data[,"Mun_Vote_Share"],na.rm=TRUE)),
+                          na.color = "white") 
       #pal <- colorNumeric(palette=c("white","red"),domain=c(0,max(dz5@data[,"Mun_Vote_Share"],na.rm=TRUE)), na.color="white") 
     }
     
@@ -294,7 +314,33 @@ server <- function(input, output, session) {
     
     popup_text_hihi <- paste0(dz5()@data[dz5()@data$category=="High-High","NOME"],"<br> Valid Votes: ",dz5()@data[dz5()@data$category=="High-High","Tot_Mun"]," (",round((dz5()@data[dz5()@data$category=="High-High","Tot_Mun"]/dz5()@data[dz5()@data$category=="High-High","Tot_State"])*100,1),"% of State Total)","<br>",dz5()@data[,"NOME_URNA_CANDIDATO"]," received ",dz5()@data[dz5()@data$category=="High-High","QTDE_VOTOS"]," votes (",round((dz5()@data[dz5()@data$category=="High-High","QTDE_VOTOS"]/dz5()@data[dz5()@data$category=="High-High","Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> QL Measure: ",round(dz5()@data[dz5()@data$category=="High-High","LQ"],3))
     
-    leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp(),fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dz5(), layerId=dz5()@data[,switch(input$Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dz5()@data[,switch(input$Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")]), popup=popup_text) %>% addLegend(position="bottomright", pal=pal,values=dz5()@data[,switch(input$Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")],opacity=0.8)  %>% addPolygons(data=dz5()[dz5()@data$category=="High-High",], layerId=dz5()@data[dz5()@data$category=="High-High",],fillOpacity=0,weight=2,color="green",stroke=TRUE,popup=popup_text_hihi)
+    leaflet() %>%
+      addProviderTiles("CartoDB.Positron") %>%
+      clearBounds() %>%
+      addPolygons(data         = state_shp(),
+                  fillOpacity  = 0,
+                  weight       = 3,
+                  color        = "black",
+                  fillColor    = NULL) %>%
+      addPolygons(data         = dz5(),
+                  layerId      = dz5()@data[,switch(input$Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")],
+                  fillOpacity  = 0.8,
+                  weight       = 0.1,
+                  color        = NA,
+                  fillColor    = pal(dz5()@data[,switch(input$Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")]),
+                  popup        = popup_text) %>%
+      addLegend(position       = "bottomright",
+                pal            = pal,
+                values         = dz5()@data[,switch(input$Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")],
+                opacity        = 0.8,
+                labFormat      = labelFormat(suffix = "%"))  %>% 
+      addPolygons(data         = dz5()[dz5()@data$category=="High-High",],
+                  layerId      = dz5()@data[dz5()@data$category=="High-High",],
+                  fillOpacity  = 0,
+                  weight       = 2,
+                  color        = "green",
+                  stroke       = TRUE,
+                  popup        = popup_text_hihi)
     #leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp,fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dz5, layerId=dz5@data[,switch(input$Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dz5@data[,switch(input$Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=dz5@data[,switch(input$Indicator,"Vote Share %"="Mun_Vote_Share","QL Measure"="LQ")],opacity=0.8)  %>% addPolygons(data=dz5[dz5@data$category=="High-High",], layerId=dz5@data[dz5@data$category=="High-High",],fillOpacity=0,weight=3,color="green",stroke=TRUE)
   })
   
