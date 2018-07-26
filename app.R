@@ -52,7 +52,6 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                  tabPanel("Classify",
                           column(width=4,""),
                           column(width=4,plotOutput("quadrant",click="plot_click",hover="plot_hover"),
-                                 #                          verbatimTextOutput("mouse"),
                                  uiOutput("hover_info"),
                                  htmlOutput("Classify_Note"),
                                  htmlOutput("Classify_Note2")),
@@ -95,7 +94,8 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                             choices = list("Proporção de Votos", "Medida QL"),
                                             selected = "Proporção de Votos"),
                                actionButton("button", label = strong("Clique Aqui"), width = "95%"),
-                               actionButton("button2", label = strong("Clique Aqui"), width = "95%"),
+                               shiny::br(),
+                               actionButton("but2", label = strong("Clique Aqui"), width = "95%"),
                                HTML(paste0("<hr> </hr>")),
                                htmlOutput("Result"),
                                htmlOutput("G_Index"),
@@ -104,10 +104,17 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
 )
 
 server <- function(input, output, session) {
-  
-  ## UI Outputs ##
-  
+
   ### Turno ###
+  turno <- reactive({
+    cargo <- input$cargo
+    if(cargo%in% c(1,3)){
+      return(input$turno_value)
+    } else {
+      return(1)
+    }
+  })
+  
   output$turno_UI <- renderUI({
     cargo <- input$cargo
     if(cargo %in% c(1,3)){
@@ -119,9 +126,12 @@ server <- function(input, output, session) {
     }
   })
   
-  output$party_UI <- renderUI({
+  ### Partido ###
+  
+  partidos_escolhas <- reactive({
     cargo <- input$cargo
     ano <- input$Year
+    
     if(cargo == 1){
       uf <- "BR"
     } else {
@@ -129,29 +139,19 @@ server <- function(input, output, session) {
     }
     choices <- (party_template$PARTIDOS[party_template$CODIGO_CARGO == cargo & party_template$SIGLA_UF == uf & party_template$ANO_ELEICAO == ano])[[1]]
     choices <- unique(sort(choices))
+    return(choices)
+  }) 
+  
+  output$party_UI <- renderUI({
+    partidos <- partidos_escolhas()
     selectInput("Party",
                 label = "Escolha um partido:",
-                choices = choices,
-                selected = choices[1])
+                choices = partidos,
+                selected = partidos[[1]])
   })
   
-  
   ### Candidato ###
-  output$cand <- renderUI({
-    cargo <- input$cargo
-    if(cargo %in% c(5,6)){
-      nomes <- banco()$NOME_URNA_CANDIDATO
-      candidates <- sort(unique(nomes))    
-      selectInput("candidato",
-                  label = "Escolha um candidato:",
-                  choices = candidates,
-                  selected = candidates[1])
-      }
-    })
   
-  ## Data Querys ##
-  
-  ### Query Values ###
   Candidate <- eventReactive(banco(),{
     cargo <- input$cargo
     partido <- input$Party 
@@ -163,14 +163,32 @@ server <- function(input, output, session) {
     }
   })
   
-  turno <- reactive({
+  candidatos_value <- reactive({
     cargo <- input$cargo
-    if(cargo%in% c(1,3)){
-      return(input$turno_value)
-    } else {
-      return(1)
-    }
+    nomes <- banco()[["NOME_URNA_CANDIDATO"]]
+    cat("Parsing candidates names. ")
+    candidatos_value <- sort(unique(nomes))
+    cat("CHECK!!!\n")
+    return(candidatos_value)
   })
+  
+  output$cand <- renderUI({
+    cargo <- input$cargo
+    candidatos <- candidatos_value()
+    cat("Outputing candidates UI. ")
+    if(cargo %in% c(5,6)){
+      UI <- selectInput("candidato",
+                        label = "Escolha um candidato:",
+                        choices = candidatos,
+                        selected = candidatos[1])
+    } else{
+      UI <- NULL
+    }
+    cat("CHECK!!!\n")
+    return(UI)
+    })
+  
+  ## Data Querys ##
   
   ### Query ###
   state_totals <- reactive({
@@ -183,8 +201,9 @@ server <- function(input, output, session) {
     state_temp <- state_temp[,c("UF","QTDE_VOTOS")]
     colnames(state_temp)[colnames(state_temp)=="QTDE_VOTOS"] <- "Tot_State"
     end <- Sys.time()
-    cat("Time to Load State Totals:",end-beginning, "\n")
+    cat("Time to Load State Totals:",end-beginning, ".\n", sep = "")
     state_totals <- state_temp
+    return(state_totals)
   })
   
   mun_totals <- reactive({
@@ -198,20 +217,22 @@ server <- function(input, output, session) {
     mun_temp <- mun_temp[,c("COD_MUN_IBGE","QTDE_VOTOS")]
     colnames(mun_temp)[colnames(mun_temp)=="QTDE_VOTOS"] <- "Tot_Mun"
     end <- Sys.time()
-    cat("Time to Load Municipal Totals: ",end-beginning, "\n")
+    cat("Time to Load Municipal Totals: ",end-beginning, ".\n", sep = "")
     mun_totals <- mun_temp
+    return(mun_totals)
   })
   ### Test Query ###
 
-  # input <- tibble::tibble(cargo = 6,
+  # input <- tibble::tibble(cargo = 1,
   #                         Year = 2014,
-  #                         turno_value = 1,
+  #                         turno = 1,
   #                         Party = "PT",
   #                         State  = "SP")
   # url <- "http://api.cepesp.io/api/consulta/tse"
 
   banco <- eventReactive(input$button, {
-    cat("Starting Banco Download\n") 
+    start <- Sys.time()
+    cat("Downloading main data. ") 
     uf <- input$State
     partido <- input$Party
     vars <- list("NUM_TURNO","UF","NUMERO_PARTIDO","ANO_ELEICAO","COD_MUN_IBGE","QTDE_VOTOS","NUMERO_CANDIDATO","SIGLA_PARTIDO","NOME_URNA_CANDIDATO","DESC_SIT_TOT_TURNO")
@@ -221,31 +242,39 @@ server <- function(input, output, session) {
                    "columns[1][name]"          = "NUMERO_PARTIDO",
                    "columns[1][search][value]" = sigla_partidos[partido])
     consulta <- append(append(list(cached=TRUE,anos = input$Year,uf=input$State,agregacao_regional=6, agregacao_politica=2, cargo=as.numeric(input$cargo)),vars),filter)
-    banco <- content(GET(url,query=consulta),type="text/csv", encoding = "UTF-8")
+    banco <- content(GET(url,query=consulta),type="text/plain", encoding = "UTF-8")
+    banco <- readr::read_csv(banco, col_types = list(NUMERO_PARTIDO      = readr::col_integer(),
+                                                     NOME_URNA_CANDIDATO = readr::col_character(),
+                                                     COD_MUN_IBGE        = readr::col_integer(),
+                                                     NUMERO_CANDIDATO    = readr::col_integer(),
+                                                     SIGLA_PARTIDO       = readr::col_character(),
+                                                     DESC_SIT_TOT_TURNO  = readr::col_character(),
+                                                     UF                  = readr::col_character(),
+                                                     NUM_TURNO           = readr::col_integer(),
+                                                     ANO_ELEICAO         = readr::col_integer(),
+                                                     QTDE_VOTOS          = readr::col_integer()))
     banco <- banco[banco$NUM_TURNO == turno(),]
-    readr::write_rds(banco, 'teste.rds')
-    cat("Banco Downloaded!!!\n") 
+    end_beginning <- round(difftime(Sys.time(), start, units = "secs"), 2)
+    cat("CHECK!!! (", end_beginning, "seconds)\n", sep = "")
+    return(banco)
   })
   
-  d <- eventReactive(input$button2, {
-    beginning <- Sys.time()
-    withProgress(message="Por favor, espere...", detail = "Download dos Dados", value=0.2,{
-    d <- banco()
-    incProgress(0.7, detail = "Prcessando os dados")
+  d <- eventReactive(input$but2, {
+    start <- Sys.time()
     
-    d <- data.table(d)
+    cat("Calculating 'd' value. ")
+    
+    d <- data.table(banco())
 
-    if (dim(d)[1]!=0){
+    if(dim(d)[1] != 0){
     
     #Ideally will be faster when can request specific state
     setkeyv(d,c('ANO_ELEICAO','COD_MUN_IBGE','NUMERO_CANDIDATO'))
     
     #### Aggregations
-    d <- merge(d,mun_totals(),by="COD_MUN_IBGE")
-    #d <- merge(d,mun_totals,by="COD_MUN_IBGE")
-    d <- merge(d,state_totals(),by="UF")
-    #d <- merge(d,state_totals,by="UF")
-    
+    d <- merge(d,mun_totals(), by="COD_MUN_IBGE")
+    d <- merge(d,state_totals(), by="UF")
+
     d[,Tot_Deputado := sum(QTDE_VOTOS),by=.(ANO_ELEICAO,UF,NUMERO_CANDIDATO)]
     d[,Mun_Vote_Share := (QTDE_VOTOS/Tot_Mun)*100]
     
@@ -259,12 +288,20 @@ server <- function(input, output, session) {
     #Remove NULO line from selectable candidates, though is included in calculations of total statewide and municipal votes above
     d <- d[NOME_URNA_CANDIDATO!="#NULO#"]
     } else {
-      d <- data.table("UF"=character(),"NUMERO_PARTIDO"=integer(),"ANO_ELEICAO"=integer(),"COD_MUN_IBGE"=integer(),"QTDE_VOTOS"=integer(),"NUMERO_CANDIDATO"=integer(),"SIGLA_PARTIDO"=character(),"NOME_URNA_CANDIDATO"=character(),"DESC_SIT_TOT_TURNO"=character())
+      d <- data.table("UF"                   = character(),
+                      "NUMERO_PARTIDO"       = integer(),
+                      "ANO_ELEICAO"          = integer(),
+                      "COD_MUN_IBGE"         = integer(),
+                      "QTDE_VOTOS"           = integer(),
+                      "NUMERO_CANDIDATO"     = integer(),
+                      "SIGLA_PARTIDO"        = character(),
+                      "NOME_URNA_CANDIDATO"  = character(),
+                      "DESC_SIT_TOT_TURNO"   = character())
     }
     end <- Sys.time()
-    print(c("Load Candidate Data Time: ",end-beginning))
-    })
-    d
+    end_beginning <- difftime(start, end, units = "secs")
+    cat("CHECK!!! (", end_beginning, "seconds)\n")
+    return(d)
   })
   
   mun_state_contig <- reactive({
@@ -278,16 +315,14 @@ server <- function(input, output, session) {
       mun_state_contig <- mun_state
     }
     end <- Sys.time()
-    print(c("Time for trimming shapefile to state and first screening for neighbours: ",end-beginning))
-    mun_state_contig
+    cat("Time for trimming shapefile to state and first screening for neighbours:",end-beginning,".\n")
+    return(mun_state_contig)
   })
   
   dz3 <- eventReactive(Candidate(),{
     beginning <- Sys.time()
     dz2 <- d()[NOME_URNA_CANDIDATO==Candidate()]
-    #dz2 <- d[NOME_URNA_CANDIDATO==Candidate()]
     dz3_temp <- merge(mun_state_contig(),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
-    #dz3_temp <- merge(mun_state_contig,dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
     dz3_temp@data[is.na(dz3_temp@data[,"LQ"])==TRUE,"LQ"] <- 0
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"Mun_Vote_Share"] <- 0
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"Tot_State"] <- mean(dz3_temp@data[,"Tot_State"],na.rm=TRUE)
@@ -295,25 +330,24 @@ server <- function(input, output, session) {
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"NOME_URNA_CANDIDATO"] <- Candidate()
     dz3_temp$Tot_Mun <- NULL
     dz3_temp <- merge(dz3_temp,mun_totals(),by.x="GEOCOD",by.y="COD_MUN_IBGE")
-    #dz3_temp <- merge(dz3_temp,mun_totals,by.x="GEOCOD",by.y="COD_MUN_IBGE")
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"QTDE_VOTOS"] <- 0
     end <- Sys.time()
-    print(c("Time for merging candidate data with shapefile: ",end-beginning))
+    cat("Time for merging candidate data with shapefile:",end-beginning,".\n")
     dz3 <- dz3_temp
+    return(dz3)
   })
   
   state_nb2 <- reactive({
     state_nb2 <- poly2nb(mun_state_contig()) #Necessary to remove 'islands' as causes problems
-    #state_nb2 <- poly2nb(mun_state_contig) #Necessary to remove 'islands' as causes problems
+    return(state_nb2)
   })
   
   state_nb2listw <- reactive({
     beginning <- Sys.time()
     state_nb2listw <- nb2listw(state_nb2(),zero.policy=TRUE)
-    #state_nb2listw <- nb2listw(state_nb2,zero.policy=TRUE)
     end <- Sys.time()
-    print(c("Time for identifying neightbours list: ",end-beginning))
-    state_nb2listw
+    cat("Time for identifying neightbours list: ",end-beginning,".\n")
+    return(state_nb2listw)
   })
   
   dz5 <- eventReactive(Candidate(),{
@@ -322,14 +356,12 @@ server <- function(input, output, session) {
     #dz4 <- dz3
     
     lisa <- as.data.frame(localmoran(dz4$LQ,state_nb2listw()))
-    #lisa <- as.data.frame(localmoran(dz4$LQ,state_nb2listw))
-    
+
     dz4$LISA_I <- lisa[,"Ii"]
     dz4$LISA_p <- lisa[,"Pr(z > 0)"]
     dz4$LQ_stdzd <- as.vector(scale(dz4$LQ))
     dz4$LQ_stdzd_lag <- lag.listw(state_nb2listw(),dz4$LQ_stdzd, NAOK=TRUE) #NAOK here helps or hinders?
-    #dz4$LQ_stdzd_lag <- lag.listw(state_nb2listw,dz4$LQ_stdzd, NAOK=TRUE)
-    
+
     dz4$category <- "Insignificant"
     dz4$category[dz4$LISA_p<0.05 & dz4$LQ_stdzd>=0 & dz4$LQ_stdzd_lag>=0] <- "High-High"
     dz4$category[dz4$LISA_p<0.05 & dz4$LQ_stdzd>=0 & dz4$LQ_stdzd_lag<=0] <- "High-Low"
@@ -343,7 +375,6 @@ server <- function(input, output, session) {
   
   state_shp <- reactive({
     state_shp <- unionSpatialPolygons(dz5(),IDs=dz5()@data[,"UF_shape"])
-    #state_shp <- unionSpatialPolygons(dz5,IDs=dz5@data[,"UF_shape"])
   })
   
   output$map <- renderLeaflet({
@@ -356,13 +387,35 @@ server <- function(input, output, session) {
       pal <- colorNumeric(palette  = c("white","red"),
                           domain   = c(0,max(dz5()@data[,"Mun_Vote_Share"],na.rm=TRUE)),
                           na.color = "white") 
-      #pal <- colorNumeric(palette=c("white","red"),domain=c(0,max(dz5@data[,"Mun_Vote_Share"],na.rm=TRUE)), na.color="white") 
     }
     
-    popup_text <- paste0(dz5()@data[,"NOME"],"<br> Valid Votes: ",dz5()@data[,"Tot_Mun"]," (",round((dz5()@data[,"Tot_Mun"]/dz5()@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dz5()@data[,"NOME_URNA_CANDIDATO"]," received ",dz5()@data[,"QTDE_VOTOS"]," votes (",round((dz5()@data[,"QTDE_VOTOS"]/dz5()@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> Medida QL: ",round(dz5()@data[,"LQ"],3))
-    #popup_text <- paste0(dz5@data[,"NOME"],"<br> Valid Votes: ",dz5@data[,"Tot_Mun"]," (",round((dz5@data[,"Tot_Mun"]/dz5@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dz5@data[,"NOME_URNA_CANDIDATO"]," received ",dz5@data[,"QTDE_VOTOS"]," votes (",round((dz5@data[,"QTDE_VOTOS"]/dz5@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> Medida QL: ",round(dz5@data[,"LQ"],3))
-    
-    popup_text_hihi <- paste0(dz5()@data[dz5()@data$category=="High-High","NOME"],"<br> Valid Votes: ",dz5()@data[dz5()@data$category=="High-High","Tot_Mun"]," (",round((dz5()@data[dz5()@data$category=="High-High","Tot_Mun"]/dz5()@data[dz5()@data$category=="High-High","Tot_State"])*100,1),"% of State Total)","<br>",dz5()@data[,"NOME_URNA_CANDIDATO"]," received ",dz5()@data[dz5()@data$category=="High-High","QTDE_VOTOS"]," votes (",round((dz5()@data[dz5()@data$category=="High-High","QTDE_VOTOS"]/dz5()@data[dz5()@data$category=="High-High","Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> Medida QL: ",round(dz5()@data[dz5()@data$category=="High-High","LQ"],3))
+    popup_text <- paste0(dz5()@data[,"NOME"],
+                         "<br> Votos Válidos: ",
+                         dz5()@data[,"Tot_Mun"],
+                         " (",
+                         round((dz5()@data[,"Tot_Mun"] / dz5()@data[,"Tot_State"])*100,1),
+                         "% do total do Estado)",
+                         "<br>",dz5()@data[,"NOME_URNA_CANDIDATO"],
+                         " recebidos ",
+                         dz5()@data[,"QTDE_VOTOS"],
+                         " votos (",
+                         round((dz5()@data[,"QTDE_VOTOS"] / dz5()@data[,"Tot_Deputado"])*100,1),
+                         "% of their Statewide Total)"
+                         ,"<br> Medida QL: ",
+                         round(dz5()@data[,"LQ"],3))
+
+    popup_text_hihi <- paste0(dz5()@data[dz5()@data$category=="High-High","NOME"],
+                              "<br> Valid Votes: ",
+                              dz5()@data[dz5()@data$category=="High-High","Tot_Mun"],
+                              " (",
+                              round((dz5()@data[dz5()@data$category=="High-High","Tot_Mun"]/dz5()@data[dz5()@data$category=="High-High","Tot_State"])*100,1),
+                              "% of State Total)","<br>",dz5()@data[,"NOME_URNA_CANDIDATO"],
+                              " rebecebidos ",
+                              dz5()@data[dz5()@data$category=="High-High","QTDE_VOTOS"],
+                              " votos (",
+                              round((dz5()@data[dz5()@data$category=="High-High","QTDE_VOTOS"]/dz5()@data[dz5()@data$category=="High-High","Tot_Deputado"])*100,1),
+                              "% of their Statewide Total)","<br> Medida QL: ",
+                              round(dz5()@data[dz5()@data$category=="High-High","LQ"],3))
     
     leaflet() %>%
       addProviderTiles("CartoDB.Positron") %>%
@@ -391,12 +444,10 @@ server <- function(input, output, session) {
                   color        = "green",
                   stroke       = TRUE,
                   popup        = popup_text_hihi)
-    #leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp,fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dz5, layerId=dz5@data[,switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share","Medida QL"="LQ")],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dz5@data[,switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share","Medida QL"="LQ")]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=dz5@data[,switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share","Medida QL"="LQ")],opacity=0.8)  %>% addPolygons(data=dz5[dz5@data$category=="High-High",], layerId=dz5@data[dz5@data$category=="High-High",],fillOpacity=0,weight=3,color="green",stroke=TRUE)
   })
   
   clusters <- reactive({
     dz5_HH <- dz5()[dz5()$category=="High-High",]
-    #dz5_HH <- dz5[dz5$category=="High-High",]
     if (dim(dz5_HH)[1]!=0){
       clusters <- gUnion(dz5_HH,dz5_HH)  
     } else {
@@ -407,8 +458,7 @@ server <- function(input, output, session) {
   clusters_sp <- reactive({
     if (!(is.null(clusters()))){
       clusters_sep <- slot(clusters()@polygons[[1]],"Polygons")
-      #clusters_sep <- slot(clusters@polygons[[1]],"Polygons")
-      
+
       clusters_sep <- clusters_sep[unlist(lapply(clusters_sep, function(x) x@hole==FALSE))] #Have to make sure aren't picking up holes too!
       polygons_list <- list()
       for (i in 1:length(clusters_sep)){
@@ -422,7 +472,6 @@ server <- function(input, output, session) {
   clusters_sp_cent_table <- reactive({
     if (!(is.null(clusters()))){
       clusters_sp_cent <- gCentroid(clusters_sp(),byid=TRUE)
-      #clusters_sp_cent <- gCentroid(clusters_sp,byid=TRUE)
       clusters_sp_cent_table_temp <- as.data.frame(clusters_sp_cent@coords)
       clusters_sp_cent_table_temp$Cluster_num <- rownames(clusters_sp_cent_table_temp)
       clusters_sp_cent_table <- clusters_sp_cent_table_temp
@@ -433,11 +482,9 @@ server <- function(input, output, session) {
     if (!(is.null(clusters()))){
       clusters_list_temp <- list()
       num_clust <- length(clusters_sp())
-      #num_clust <- length(clusters_sp)
-      
+
       for (i in 1:num_clust){
         clusters_list_temp[[i]] <- raster::intersect(dz5()[dz5()$category=="High-High",],clusters_sp()[i])
-        #clusters_list_temp[[i]] <- raster::intersect(dz5[dz5$category=="High-High",],clusters_sp[i])
         clusters_list_temp[[i]]@data$Cluster_Num <- i
       }
       clusters_list <- clusters_list_temp
@@ -447,7 +494,6 @@ server <- function(input, output, session) {
   output$Num_clusters <- renderUI({
     if (!(is.null(clusters()))){
       Num_clusters <- paste0("<b> Number of High-High Clusters: ",length(clusters_list()),"<b>")
-      #Num_clusters <- paste0("<b> Number of High-High Clusters: ",length(clusters_list),"<b>")
       HTML(Num_clusters)
     } else {
       HTML(paste0("<b> No clusters <b>"))
@@ -457,7 +503,6 @@ server <- function(input, output, session) {
   cluster_table <- reactive({
     if (!(is.null(clusters()))){
       clusters_table_temp <- rbind.fill(lapply(clusters_list(),slot,'data'))
-      #clusters_table_temp <- rbind.fill(lapply(clusters_list,slot,'data'))
       clusters_table_temp$pct_votes_from_mun <- clusters_table_temp$QTDE_VOTOS/clusters_table_temp$Tot_Deputado
       clusters_table_temp <- clusters_table_temp[,c("Cluster_Num","NOME","QTDE_VOTOS","pct_votes_from_mun","LQ")]
       clusters_table_temp$pct_votes_from_mun <- round(clusters_table_temp$pct_votes_from_mun*100,1)
@@ -469,7 +514,6 @@ server <- function(input, output, session) {
   output$Clusters <- renderDataTable({
     if (!(is.null(clusters()))){
       table_temp <- cluster_table()
-      #table_temp <- cluster_table
       colnames(table_temp) <- c("Cluster Number","Municipality","Votes","% Candidate Votes","LQ")
       table_temp[,"Votes"] <- round(table_temp[,"Votes"],0)
       table_temp[,"% Candidate Votes"] <- round(table_temp[,"% Candidate Votes"],1)
@@ -481,7 +525,6 @@ server <- function(input, output, session) {
   output$Clusters_agg <- renderDataTable({
     if (!(is.null(clusters()))){
       agg <- as.data.frame(as.data.table(cluster_table())[,.(sum(QTDE_VOTOS), sum(pct_votes_from_mun)),by=Cluster_Num])
-      #agg <- as.data.frame(as.data.table(cluster_table)[,.(sum(QTDE_VOTOS), sum(pct_votes_from_mun)),by=Cluster_Num])
       colnames(agg) <- c("Cluster Number","Total Votes Received","Total % Candidate Votes")
       agg[,"Total Votes Received"] <- round(agg[,"Total Votes Received"],0)
       agg[,"Total % Candidate Votes"] <- round(agg[,"Total % Candidate Votes"],1)
@@ -506,42 +549,45 @@ server <- function(input, output, session) {
         clearBounds() %>% 
         addPolygons(data=state_shp(),fillOpacity=0,weight=3,color="black",fillColor=NULL)
     }
-    #leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp,fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dz5[dz5@data$category=="High-High",], layerId=dz5@data[dz5@data$category=="High-High",],fillOpacity=0,weight=3,color="green",stroke=TRUE) %>%  addLabelOnlyMarkers(data=clusters_sp_cent_table,~x*0.99,~y,label = ~Cluster_num,labelOptions = labelOptions(noHide = T, textOnly = TRUE,textsize="15px"))
-    
-    #%>% addPolygons(data=dz5(), layerId=dz5()@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dz5()@data[,"LQ"]), popup=popup_text)  %>% addLegend(position="bottomleft", pal=pal,values=dz5()@data[,"LQ"],opacity=0.8)     
-    
   })
   
   d_G <- reactive({
     d_G <- d()[,unique(G_Index),by=.(UF,NUMERO_CANDIDATO,NOME_URNA_CANDIDATO,NUMERO_PARTIDO,DESC_SIT_TOT_TURNO)]
-    #d_G <- d[,unique(G_Index),by=.(UF,NUMERO_CANDIDATO,NOME_URNA_CANDIDATO,NUMERO_PARTIDO,DESC_SIT_TOT_TURNO)]
   })
   
   output$Result <- renderUI({
-    str_Result <- paste0("Result: ",unique(dz3()@data$DESC_SIT_TOT_TURNO[is.na(dz3()@data$DESC_SIT_TOT_TURNO)==FALSE])," <br> Total de Votos: ",unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE])," <br> % of Valid State Votes: ",round((unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE])/unique(dz3()@data$Tot_State[is.na(dz3()@data$Tot_State)==FALSE]))*100,1),"%")
-    #str_Result <- paste0("Resultado: ",unique(dz3@data$DESC_SIT_TOT_TURNO[is.na(dz3@data$DESC_SIT_TOT_TURNO)==FALSE])," <br> Votos Total: ",unique(dz3@data$Tot_Deputado[is.na(dz3@data$Tot_Deputado)==FALSE])," <br> Percentagem de Votos: ",round((unique(dz3@data$Tot_Deputado[is.na(dz3@data$Tot_Deputado)==FALSE])/unique(dz3@data$Tot_State[is.na(dz3@data$Tot_State)==FALSE]))*100,1),"%")
+    str_Result <- paste0("Result: ",
+                         unique(dz3()@data$DESC_SIT_TOT_TURNO[is.na(dz3()@data$DESC_SIT_TOT_TURNO)==FALSE]),
+                         " <br> Total de Votos: ",unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE]),
+                         " <br> % of Valid State Votes: ",round((unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE])/unique(dz3()@data$Tot_State[is.na(dz3()@data$Tot_State)==FALSE]))*100,1),"%")
     HTML(str_Result)
   })
   
   output$G_Index <- renderUI({
     str_G_Index <- paste0("<b> G Index: ",round(unique(dz3()@data$G_Index[is.na(dz3()@data$G_Index)==FALSE]),3),"<b>")
-    #str_G_Index <- paste0("<b> G Index: ",round(unique(dz3@data$G_Index[is.na(dz3@data$G_Index)==FALSE]),3),"<b>")
     HTML(str_G_Index)
   })
   
   moran_I <- reactive({
     moran_I <- moran(dz3()$LQ,state_nb2listw(),n=length(state_nb2()),Szero(state_nb2listw()),zero.policy=TRUE,NAOK=TRUE)$I  
-    #moran_I <- moran(dz3$LQ,state_nb2listw,n=length(state_nb2),Szero(state_nb2listw),zero.policy=TRUE,NAOK=TRUE)$I
   })
   
   output$chart_LQ <- renderPlot({
-    ggplot() + geom_density(data=dz3()@data,aes(x=LQ),fill="light blue",colour=NA,alpha=0.5) + xlab("Log of Medida QL") + theme_classic() + ylab("Density") + scale_x_log10()
-    #ggplot() + geom_density(data=dz3@data,aes(x=LQ),fill="purple",colour=NA,alpha=0.5) + xlab("Log of Medida QL") + theme_classic() + ylab("Density") + scale_x_log10()
+    ggplot() +
+      geom_density(data=dz3()@data,aes(x=LQ),fill="light blue",colour=NA,alpha=0.5) +
+      xlab("Log of Medida QL") +
+      theme_classic() +
+      ylab("Density") +
+      scale_x_log10()
   })
   
   output$chart_scatter <- renderPlot({
-    ggplot() + geom_point(aes(x=dz3()@data$Tot_Mun,y=dz3()@data$LQ),color="dark green")  + xlab("Log of Municipal Voting Population") + ylab("Medida QL") + theme_classic() + scale_x_log10()
-    #ggplot() + geom_point(aes(x=dz3@data$Tot_Mun,y=dz3@data$LQ),color="dark green")  + xlab("Log of Municipal Voting Population") + ylab("Medida QL") + theme_classic() + scale_x_log10()
+    ggplot() +
+      geom_point(aes(x=dz3()@data$Tot_Mun,y=dz3()@data$LQ),color="dark green") +
+      xlab("Log of Municipal Voting Population") +
+      ylab("Medida QL") +
+      theme_classic() +
+      scale_x_log10()
   })
 
   d_uniq_cut <- reactive({
@@ -549,38 +595,43 @@ server <- function(input, output, session) {
       d_uniq_cut <- d_uniq
     } else if (input$Cut=="Selected Year") {
       d_uniq_cut <- d_uniq[d_uniq$anoEleicao==input$Year,]
-      #d_uniq_cut <- d_uniq[d_uniq$anoEleicao==Year,]
     } else if (input$Cut=="Selected State") {
       d_uniq_cut <- d_uniq[d_uniq$sigla_UF==input$State,]
-      #d_uniq_cut <- d_uniq[d_uniq$sigla_UF==State,]
     } else if (input$Cut=="Selected Party") {
-      d_uniq_cut <- d_uniq[d_uniq$NUMERO_PARTIDO==switch(input$Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),]
-      #d_uniq_cut <- d_uniq[d_uniq$NUMERO_PARTIDO==switch(Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),]
+      d_uniq_cut <- d_uniq[d_uniq$NUMERO_PARTIDO==sigla_partidos[input$Party],]
     }
     d_uniq_cut
   })
   
   output$G_cand <- renderPlot({
     ##Check categories for winner here
-    ggplot() + geom_density(data=d_uniq_cut(),aes(x=G_Index,fill=Result),colour=NA,alpha=0.5)+ xlab("G Index") + theme_classic() + ylab("Density") + geom_vline(xintercept=unique(dz3()@data$G_Index[is.na(dz3()@data$G_Index)==FALSE]),lty=2) + theme(axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),legend.text=element_text(size=))
-    #ggplot() + geom_density(data=d_uniq_cut(),aes(x=G_Index,fill=Result),colour=NA,alpha=0.5)+ xlab("G Index") + theme_classic() + ylab("Density") + geom_vline(xintercept=unique(dz3@data$G_Index[is.na(dz3@data$G_Index)==FALSE]),lty=2)
+    ggplot() + geom_density(data=d_uniq_cut(),aes(x=G_Index,fill=Result),colour=NA,alpha=0.5) +
+      xlab("G Index") + 
+      theme_classic() + 
+      ylab("Density") +
+      geom_vline(xintercept=unique(dz3()@data$G_Index[is.na(dz3()@data$G_Index)==FALSE]),lty=2) + 
+      theme(axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),legend.text=element_text(size=))
   })
   
   output$I_cand <- renderPlot({
-    ##Check categories for winner here
-    ggplot() + geom_density(data=d_uniq_cut(),aes(x=MoranI,fill=Result),colour=NA,alpha=0.5)+ xlab("Moran's I") + theme_classic() + ylab("Density") + geom_vline(xintercept=moran_I(),lty=2) + theme(axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),legend.text=element_text(size=12))
-    #ggplot() + geom_density(data=d_uniq_cut(),aes(x=MoranI,fill=Result),colour=NA,alpha=0.5)+ xlab("Moran's I") + theme_classic() + ylab("Density") + geom_vline(xintercept=moran_I,lty=2)
+    ggplot() +
+      geom_density(data=d_uniq_cut(),aes(x=MoranI,fill=Result),colour=NA,alpha=0.5) +
+      xlab("Moran's I") +
+      ylab("Density") +
+      theme_classic() +
+      geom_vline(xintercept=moran_I(),lty=2) +
+      theme(axis.text=element_text(size=12),
+            axis.title=element_text(size=14,face="bold"),
+            legend.text=element_text(size=12))
   })
   
   output$Note <- renderUI({
-    #note <- paste0("The <b> Proporção de Votos <b> is the percentage of valid municipal votes received by the candidate. <br> <br>  The <b> Medida QL <B> indicates the relative importance of a specific municipality to a candidate's total electoral support. Values greater than 1 indicate the candidate is over-dependent on the municipality and values less than 1 indicate they are under-dependent. <br> <br> The <b> G-index <b> measures the district-wide deviation from a uniform distribution of support in perfect proportion to local population. G=0 indicates a uniform rate of converting population into votes and G=1 indicates perfect concentration of electoral support. <br> The map highlights statistically significant clusters of municipalities with green borders.")
     note <- paste0("A <b>Percentagem de Voto no Município</b> é o percentual de votos válidos no município recebidos pelo candidato.<br> A <b>Medida QL</b> indica quantas vezes mais votos o candidate recebe no município em comparação com se eles recebessem apoio igual em todo o estado. Essa medida é diretamente proporcional à percentagem de votos, mas escala o indicador para que valores maiores que '1' indiquem os municípios em quais o candidato é particularmente dependente.<br> O <b>Índice G</b> mede o desvio de apoio do candidato em todo o estado de uma distribuição uniforme de apoio em proporção perfeita à população local. G = 0 indica uma taxa uniforme de conversão da população aos votos, e G = 1 indica concentração perfeita de apoio eleitoral em apenas um município.<br> O mapa destaca com <b>fronteiras verdes</b> os clusters de municípios onde votos são concentrados estatisticamente significativos..")
     HTML(note)
   })
   
   output$moran <- renderUI({
     str_moran <- paste0("<b> Moran's I: ",round(moran_I(),3),"<b>")
-    #str_moran <- paste0("<b> Moran's I: ",round(moran_I,3),"<b>")
     HTML(str_moran)
   })
 
@@ -595,25 +646,19 @@ server <- function(input, output, session) {
       theme(axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),legend.text=element_text(size=12)) + 
       xlab("G Index") + 
       ylab("Moran's I")
-    
-    #ggplot() + geom_point(data=d_uniq[d_uniq$anoEleicao==Year & d_uniq$sigla_UF==State,],aes(x=G_Index,y=MoranI,size=Number_Votes),color="blue",alpha=0.2)+ geom_point(data=d_uniq[d_uniq$NOME_URNA_CANDIDATO!=Candidate & d_uniq$anoEleicao==Year & d_uniq$sigla_UF==State & d_uniq$NUMERO_PARTIDO==switch(Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),],aes(x=G_Index,y=MoranI,size=Number_Votes),color="red",alpha=0.8) + geom_point(data=d_uniq[d_uniq$NOME_URNA_CANDIDATO==Candidate & d_uniq$anoEleicao==Year & d_uniq$sigla_UF==State & d_uniq$NUMERO_PARTIDO==switch(Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),],aes(x=G_Index,y=MoranI,size=Number_Votes),color="dark green",alpha=1) + theme_classic() + geom_vline(xintercept=median(d_uniq[d_uniq$anoEleicao==Year & d_uniq$sigla_UF==State,"G_Index"],na.rm=TRUE),lty=2) +geom_hline(yintercept=median(d_uniq[d_uniq$anoEleicao==Year & d_uniq$sigla_UF==State,"MoranI"],na.rm=TRUE),lty=2) 
-  })
+    })
   
   mouse <- reactive({
     if (is.null(input$plot_click)){
       mouse_temp  <- d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NOME_URNA_CANDIDATO==Candidate(),][1,]
-      #mouse_temp  <- d_uniq[d_uniq$anoEleicao==Year & d_uniq$sigla_UF==State & d_uniq$NOME_URNA_CANDIDATO==Candidate,][1,]
     } else {
       mouse_temp <- nearPoints(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,],input$plot_click,threshold=10,maxpoints=1)
-      #nearPoints(d_uniq[d_uniq$ANO_ELEICAO==Year & d_uniq$UF==State,],plot_click,threshold=10,maxpoints=1)
-      #mouse <- d_uniq[d_uniq$anoEleicao==Year & d_uniq$sigla_UF==State,][1,]
     }
     mouse <- mouse_temp
   })
 
   G_Quadrant <- reactive({
     if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==switch(input$Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),"G_Index"]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"],na.rm=TRUE)){
-      #d_uniq[d_uniq$NUMERO_CANDIDATO==mouse$NUMERO_CANDIDATO & d_uniq$anoEleicao==Year & d_uniq$sigla_UF==State & d_uniq$NUMERO_PARTIDO==switch(Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),"G_Index"]>median(d_uniq[d_uniq$anoEleicao==Year & d_uniq$sigla_UF==State,"G_Index"],na.rm=TRUE)
       G_Quadrant_temp <-"above"
     } else {
       G_Quadrant_temp <- "below"
@@ -623,7 +668,6 @@ server <- function(input, output, session) {
   
   G_desc <- reactive({
     if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==switch(input$Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),"G_Index"]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"],na.rm=TRUE)){
-      #d_uniq[d_uniq$NUMERO_CANDIDATO==mouse$NUMERO_CANDIDATO & d_uniq$anoEleicao==Year & d_uniq$sigla_UF==State & d_uniq$NUMERO_PARTIDO==switch(Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),"G_Index"]>median(d_uniq[d_uniq$anoEleicao==Year & d_uniq$sigla_UF==State,"G_Index"],na.rm=TRUE)
       G_desc_temp <-"concentrated"
     } else {
       G_desc_temp <- "diffuse"
@@ -652,7 +696,6 @@ server <- function(input, output, session) {
   
   mouse_cand <- reactive({
     mouse_cand <- d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"NOME_URNA_CANDIDATO"]
-    #mouse_cand <- d_uniq[d_uniq$NUMERO_CANDIDATO==mouse$NUMERO_CANDIDATO & d_uniq$anoEleicao==Year & d_uniq$sigla_UF==State,"NOME_URNA_CANDIDATO"]
   })
   
   classify_note_text <- reactive({
@@ -661,7 +704,6 @@ server <- function(input, output, session) {
   
   classify_note_text_2 <- reactive({
     classify_note_text_2 <- paste0("The currently selected candidate (on the chart above), ", mouse_cand() ," has a G-Index <b>",  G_Quadrant(),"</b> the median and a Moran's I <b>", Moran_Quadrant(), "</b> the median, indicating that the candidate's support is more <b>",G_desc(),"</b> and <b>",Moran_desc(),"</b> than average.")
-    #classify_note_text_2 <- paste0("The currently selected candidate (on the chart above), ", mouse_cand ," has a G-Index <b>",  G_Quadrant,"</b> the median and a Moran's I <b>", Moran_Quadrant, "</b> the median, indicating that the candidate's support is more <b>",G_desc,"</b> and <b>",Moran_desc,"</b> than average.")
   })
   
   output$Classify_Note <- renderUI({
@@ -683,9 +725,7 @@ server <- function(input, output, session) {
   output$map_selected <- renderLeaflet({
     pal <- colorBin(palette=c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),domain=c(0,1000), bins=c(1000,50,10,5,1,0.01,0), na.color="white")
     popup_text <- paste0(dy3()@data[,"NOME"],"<br> Valid Votes: ",dy3()@data[,"Tot_Mun"]," (",round((dy3()@data[,"Tot_Mun"]/dy3()@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dy3()@data[,"NOME_URNA_CANDIDATO"]," received ",dy3()@data[,"QTDE_VOTOS"]," votes (",round((dy3()@data[,"QTDE_VOTOS"]/dy3()@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> Medida QL: ",round(dy3()@data[,"LQ"],3))
-    #popup_text <- paste0(dy3@data[,"NOME"],"<br> Valid Votes: ",dy3@data[,"Tot_Mun"]," (",round((dy3@data[,"Tot_Mun"]/dy3@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dy3@data[,"NOME_URNA_CANDIDATO"]," received ",dy3@data[,"QTDE_VOTOS"]," votes (",round((dy3@data[,"QTDE_VOTOS"]/dy3@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> Medida QL: ",round(dy3@data[,"LQ"],3))
     leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp(),fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dy3(), layerId=dy3()@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dy3()@data[,"LQ"]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=dy3()@data[,"LQ"],opacity=0.8) 
-    #leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp,fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dy3, layerId=dy3@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dy3@data[,"LQ"]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=dy3@data[,"LQ"],opacity=0.8) 
   })
   
   output$hover_info <- renderUI({
@@ -718,9 +758,7 @@ server <- function(input, output, session) {
   
   filtered <- reactive({
     filtered <- d_uniq %>% filter(anoEleicao==input$Year,sigla_UF==input$State) %>% distinct(NOME_URNA_CANDIDATO,NUMERO_PARTIDO,G_Index,MoranI,NUMERO_CANDIDATO) %>% top_n(5,G_Index)
-    #filtered <- d_uniq %>% filter(anoEleicao==Year,sigla_UF==State) %>% distinct(NOME_URNA_CANDIDATO,NUMERO_PARTIDO,G_Index,MoranI,NUMERO_CANDIDATO) %>% top_n(5,G_Index)
     filtered_low <- d_uniq %>% filter(anoEleicao==input$Year,sigla_UF==input$State) %>% distinct(NOME_URNA_CANDIDATO,NUMERO_PARTIDO,G_Index,MoranI,NUMERO_CANDIDATO) %>% top_n(-5,G_Index)
-    #filtered_low <- d_uniq %>% filter(anoEleicao==Year,sigla_UF==State) %>% distinct(NOME_URNA_CANDIDATO,NUMERO_PARTIDO,G_Index,MoranI,NUMERO_CANDIDATO) %>% top_n(-5,G_Index)
     filtered <- rbind(filtered,filtered_low)
     
     parties <- melt(data.frame("PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90))
@@ -734,27 +772,13 @@ server <- function(input, output, session) {
   })
 
   output$Extremes <- renderDataTable({
-    #filtered2 <- filtered()[,`Candidate Number`:=NULL]
-    #filtered2 <- filtered[,`Candidate Number`:=NULL]
-    
-    #filtered2 <- filtered()[,1:4]
-    #filtered2 <- filtered[,1:4]
-    
-        
     filtered2 <- filtered()[,!names(filtered())=="Candidate Number"]
-    #filtered2 <- filtered[,which(!names(filtered)=="Candidate Number")]
-    
-    #cutoff <- median(filtered()[,`G Index`],na.rm=TRUE)
-    #cutoff <- median(filtered[,`G Index`],na.rm=TRUE)
     
     datatable(filtered2, rownames=TRUE, options=list(dom = 't',columnDefs = list(list(visible=FALSE, targets=c("Party Number","Candidate Number")))), selection='single', style = 'bootstrap', class = 'table-bordered') %>% formatRound(c("G Index","Moran's I"),3) %>% formatStyle('G Index',target='row',backgroundColor=styleInterval(median(filtered2[['G Index']],na.rm=TRUE),c('lightblue','lightgreen')))
   })
 
    candidato_hi <- eventReactive(input$Extremes_row_last_clicked,{
-    #filtered_temp <- filtered()  %>% arrange(desc(`G Index`))
-    #filtered_temp <- filtered  %>% arrange(desc(`G Index`))
     candidato_hi <- filtered()[input$Extremes_row_last_clicked,"Candidate Number"]
-    #candidato_hi <- filtered[1,"Candidate Number"]
     candidato_hi
   })
   
@@ -763,9 +787,7 @@ server <- function(input, output, session) {
     vars <- list("UF","NUMERO_PARTIDO","ANO_ELEICAO","COD_MUN_IBGE","QTDE_VOTOS","NUMERO_CANDIDATO","SIGLA_PARTIDO","NOME_URNA_CANDIDATO","DESC_SIT_TOT_TURNO")
     names(vars) <- rep("selected_columns[]",length(vars))
     filter <- list("columns[0][name]"="UF","columns[0][search][value]"=input$State,"columns[1][name]"="NUMERO_CANDIDATO","columns[1][search][value]"=candidato_hi())
-    #filter <- list("columns[0][name]"="UF","columns[0][search][value]"=State,"columns[1][name]"="NUMERO_CANDIDATO","columns[1][search][value]"=candidato_hi)
     consulta <- append(append(list(cached=TRUE,anos = input$Year,uf=input$State,agregacao_regional=6, agregacao_politica=2, cargo=6),vars),filter)
-    #consulta <- append(append(list(cached=TRUE,anos = Year,uf=State,agregacao_regional=6, agregacao_politica=2, cargo=6),vars),filter)
     d <- content(GET(url,query=consulta),type="text/csv")
     d <- data.table(d)
     
@@ -776,10 +798,8 @@ server <- function(input, output, session) {
       
       #### Aggregations
       d <- merge(d,mun_totals(),by="COD_MUN_IBGE")
-      #d <- merge(d,mun_totals,by="COD_MUN_IBGE")
       d <- merge(d,state_totals(),by="UF")
-      #d <- merge(d,state_totals,by="UF")
-      
+
       d[,Tot_Deputado := sum(QTDE_VOTOS),by=.(ANO_ELEICAO,UF,NUMERO_CANDIDATO)]
       d[,Mun_Vote_Share := QTDE_VOTOS/Tot_Mun]
       
@@ -803,20 +823,15 @@ server <- function(input, output, session) {
   
   extreme_d <- reactive({
     extreme_d_temp <- d_hi()[NUMERO_CANDIDATO==candidato_hi()]
-    #extreme_d_temp <- d_hi[NUMERO_CANDIDATO==candidato_hi]
     extreme_d_temp <- merge(mun_state_contig(),extreme_d_temp, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE)
-    #extreme_d_temp <- merge(mun_state_contig,extreme_d_temp, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE)
     extreme_d <- extreme_d_temp
   })
   
   output$map_selected_hi <- renderLeaflet({
     pal <- colorBin(palette=c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),domain=c(0,1000), bins=c(1000,50,10,5,1,0.01,0), na.color="white")
     popup_text <- paste0(extreme_d()@data[,"NOME"],"<br> Valid Votes: ",extreme_d()@data[,"Tot_Mun"]," (",round((extreme_d()@data[,"Tot_Mun"]/extreme_d()@data[,"Tot_State"])*100,1),"% of State Total)","<br>",extreme_d()@data[,"NOME_URNA_CANDIDATO"]," received ",extreme_d()@data[,"QTDE_VOTOS"]," votes (",round((extreme_d()@data[,"QTDE_VOTOS"]/extreme_d()@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> Medida QL: ",round(extreme_d()@data[,"LQ"],3))
-    #popup_text <- paste0(extreme_d@data[,"NOME"],"<br> Valid Votes: ",extreme_d@data[,"Tot_Mun"]," (",round((extreme_d@data[,"Tot_Mun"]/extreme_d@data[,"Tot_State"])*100,1),"% of State Total)","<br>",extreme_d@data[,"NOME_URNA_CANDIDATO"]," received ",extreme_d@data[,"QTDE_VOTOS"]," votes (",round((extreme_d@data[,"QTDE_VOTOS"]/extreme_d@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> Medida QL: ",round(extreme_d@data[,"LQ"],3))
     leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp(),fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=extreme_d(), layerId=extreme_d()@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(extreme_d()@data[,"LQ"]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=extreme_d()@data[,"LQ"],opacity=0.8) 
-    #leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp,fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=extreme_d, layerId=extreme_d@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(extreme_d@data[,"LQ"]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=extreme_d@data[,"LQ"],opacity=0.8) 
   })
-  
 }
 
 # Run the application 
