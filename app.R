@@ -189,6 +189,7 @@ server <- function(input, output, session) {
     ano <- input$Year
     uf <- input$State
     cargo <- as.numeric(input$cargo)
+    party <- input$Party
     candidatos <- candidatos_value()
     
     if(paste0(ano,uf,cargo) == readRDS("pre.rds")){
@@ -202,10 +203,10 @@ server <- function(input, output, session) {
         UI <- NULL
       }
       cat("CHECK!!!\n")
-      readr::write_rds(paste0(ano,uf,cargo), "pre.rds")
+      readr::write_rds(paste0(ano,uf,cargo, party), "pre.rds")
     } else {
       UI <- NULL
-      readr::write_rds(paste0(ano,uf,cargo), "pre.rds")
+      readr::write_rds(paste0(ano,uf,cargo, party), "pre.rds")
     }
     return(UI)
     })
