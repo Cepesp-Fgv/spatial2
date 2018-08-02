@@ -1,5 +1,3 @@
-load("data/brmap_estado.rda")
-
 url <- "http://cepesp.io/api/consulta/tse"
 
 d_uniq <- suppressWarnings(suppressMessages(readr::read_csv("data/d_uniq_all_new_aug.csv", locale = readr::locale(encoding = "ISO-8859-1"))))

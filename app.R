@@ -5,6 +5,7 @@ library(plyr)
 library(data.table)
 library(shiny)
 library(sp)
+library(sf)
 library(spdep)
 library(scales)
 library(leaflet)
@@ -71,34 +72,35 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                  absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                draggable = FALSE, top = 120, left = 10, right = "auto", bottom = "auto",
                                width = 330, height = "auto",
-                               h4("Resultados Eleitorais"),
-                               selectInput("cargo", 
-                                           label = "Escolha um cargo",
-                                           choices = list("Presidente" = 1,
-                                                          "Governador" = 3, 
-                                                          "Senador"    = 5,
-                                                          "Deputado Federal" = 6),
-                                           selected = 6),
-                               uiOutput("turno_UI"),
-                               selectInput("Year", 
-                                           label = "Escolha um ano:",
-                                           choices = c(1998,2002,2006,2010,2014),
-                                           selected = 2014),
-                               selectInput("State", 
-                                           label = "Escolha um estado:",
-                                           choices = c("AC","AM","AL","AP","BA","CE","DF","ES","GO","MA","MS","MG","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"),
-                                           selected = NULL),
-                               uiOutput("party_UI"),
-                               uiOutput("cand_UI"),
-                               radioButtons("Indicator",
-                                            label = "Indicador:",
-                                            choices = list("Proporção de Votos", "Medida QL"),
-                                            selected = "Proporção de Votos"),
-                               actionButton("button", label = strong("Clique Aqui"), width = "95%"),
-                               HTML(paste0("<hr> </hr>")),
-                               htmlOutput("Result"),
-                               htmlOutput("G_Index"),
-                               htmlOutput("moran")
+                               fluidPage(h4("Resultados Eleitorais"),
+                                         selectInput("cargo", 
+                                                     label = "Escolha um cargo",
+                                                     choices = list("Presidente" = 1,
+                                                                    "Governador" = 3, 
+                                                                    "Senador"    = 5,
+                                                                    "Deputado Federal" = 6),
+                                                     selected = 6),
+                                         uiOutput("turno_UI"),
+                                         selectInput("Year", 
+                                                     label = "Escolha um ano:",
+                                                     choices = c(1998,2002,2006,2010,2014),
+                                                     selected = 2014),
+                                         selectInput("State", 
+                                                     label = "Escolha um estado:",
+                                                     choices = c("AC","AM","AL","AP","BA","CE","DF","ES","GO","MA","MS","MG","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"),
+                                                     selected = NULL),
+                                         uiOutput("party_UI"),
+                                         uiOutput("cand_UI"),
+                                         radioButtons("Indicator",
+                                                      label = "Indicador:",
+                                                      choices = list("Proporção de Votos", "Medida QL"),
+                                                      selected = "Proporção de Votos"),
+                                         actionButton("button", label = strong("Atualizar"), width = "95%"),
+                                         HTML(paste0("<hr> </hr>")),
+                                         htmlOutput("Result"),
+                                         htmlOutput("G_Index"),
+                                         htmlOutput("moran"))
+                               
                  )
 )
 
@@ -150,21 +152,27 @@ server <- function(input, output, session) {
   })
   
   ### Candidato ###
-  
+
   Candidate <- reactive({
-    cargo <- as.numeric(input$cargo)
-    partido <- input$Party 
+    cargo <- isolate(as.numeric(input$cargo))
+    partido <- isolate(input$Party)
+    banco()
+    cat("Creating Candidate variable\n")
     if(cargo %in% c(1,3)){
       candidato_uso <- banco()$NOME_URNA_CANDIDATO[banco()$SIGLA_PARTIDO == partido]
-      return(unique(candidato_uso))
+      Candidate <- unique(candidato_uso)
     } else {
-      return(input$candidato)
+      Candidate <- input$candidato
     }
+    print(Candidate)
+    cat("Creating Candidate variable. CHECK!!!\n")
+    return(Candidate)
   },
   label = "eventReactive - Candidate (banco)")
   
   candidatos_value <- reactive({
-    cargo <- as.numeric(input$cargo)
+    
+    cargo <- isolate(as.numeric(input$cargo))
     nomes <- banco()[["NOME_URNA_CANDIDATO"]]
     cat("Parsing candidates names. ")
     candidatos_value <- sort(unique(nomes))
@@ -172,22 +180,36 @@ server <- function(input, output, session) {
     return(candidatos_value)
   })
   
+  observeEvent(input$Year,{
+    updateSelectInput(session, "candidato", choices = NULL,
+                      selected = NULL)
+  })
+  
   output$cand_UI <- renderUI({
+    ano <- input$Year
+    uf <- input$State
     cargo <- as.numeric(input$cargo)
     candidatos <- candidatos_value()
-    cat("Outputing candidates UI. ")
-    if(cargo %in% c(5,6)){
-      UI <- selectInput("candidato",
-                        label = "Escolha um candidato:",
-                        choices = candidatos,
-                        selected = candidatos[1])
-    } else{
+    
+    if(paste0(ano,uf,cargo) == readRDS("pre.rds")){
+      cat("Outputing candidates UI. ")
+      if(cargo %in% c(5,6)){
+        UI <- selectInput("candidato",
+                          label = "Escolha um candidato:",
+                          choices = candidatos,
+                          selected = candidatos[1])
+      } else {
+        UI <- NULL
+      }
+      cat("CHECK!!!\n")
+      readr::write_rds(paste0(ano,uf,cargo), "pre.rds")
+    } else {
       UI <- NULL
+      readr::write_rds(paste0(ano,uf,cargo), "pre.rds")
     }
-    cat("CHECK!!!\n")
     return(UI)
     })
-  
+
   ## Data Querys ##
   
   ### Query ###
@@ -195,32 +217,15 @@ server <- function(input, output, session) {
   state_totals <- reactive({
     start <- Sys.time()
     cat("Downloading State Totals. ")
-    ### Input###
+    
+    ### Inputs ###
     ano <- input$Year
     cargo <- as.numeric(input$cargo)
     
     ### Loading State Totals
-    vars_state <- list("UF","ANO_ELEICAO","QTDE_VOTOS")
-    names(vars_state) <- rep("selected_columns[]",length(vars_state))
-    filter <- list()
-    consulta_state <- append(append(list(cached = TRUE,
-                                         anos   = ano,
-                                         uf     = "all",
-                                         agregacao_regional = 2,
-                                         agregacao_politica = 2,
-                                         cargo              = cargo),
-                                    vars_state),
-                             filter)
-    
-    state_temp <- GET(url, query = consulta_state) %>% 
-      content(type="text/csv", encoding = "UTF-8")
-    
-    state_temp <- state_temp[,c("UF","QTDE_VOTOS")]
-    colnames(state_temp)[colnames(state_temp)=="QTDE_VOTOS"] <- "Tot_State"
-    end <- Sys.time()
-    end_start <- round(difftime(end, start, units = "secs"),2)
+    state_totals <- readr::read_rds(paste0("data/state_totals/",ano,"_",cargo,".rds"))
+    end_start <- difftime(Sys.time(), start, units = "secs")
     cat("CHECK!!! (",end_start, "seconds).\n", sep = "")
-    state_totals <- state_temp
     return(state_totals)
   })
   
@@ -234,25 +239,12 @@ server <- function(input, output, session) {
     cargo <- as.numeric(input$cargo)
     
     ### Load municipal voting totals
-    vars_mun <- list("UF","ANO_ELEICAO","COD_MUN_IBGE","QTDE_VOTOS")
-    names(vars_mun) <- rep("selected_columns[]",length(vars_mun))
-    filter <- list("columns[0][name]"="UF","columns[0][search][value]"=input$State)
-    consulta_mun <- append(append(list(cached = TRUE,
-                                       anos   = ano,
-                                       uf     = uf,
-                                       agregacao_regional = 6,
-                                       agregacao_politica = 2,
-                                       cargo              = cargo),
-                                  vars_mun),
-                           filter)
-    mun_temp <- content(GET(url,query=consulta_mun),type="text/csv", encoding = "UTF-8")
-    mun_temp <- mun_temp[,c("COD_MUN_IBGE","QTDE_VOTOS")]
-    colnames(mun_temp)[colnames(mun_temp)=="QTDE_VOTOS"] <- "Tot_Mun"
+    mun_totals <- readr::read_rds(paste0("data/mun_totals/", ano,"_", cargo,"_" , uf, ".rds"))
+    
     end <- Sys.time()
     end_start <- round(difftime(end, start, units = "secs"),2)
-    
     cat("Downloading Municipal Totals. CHECK!!! (",end_start, " seconds).\n", sep = "")
-    mun_totals <- mun_temp
+    
     return(mun_totals)
   })
   
@@ -264,10 +256,11 @@ server <- function(input, output, session) {
   #                         Party = "PT",
   #                         State  = "SP")
   # url <- "http://api.cepesp.io/api/consulta/tse"
-
+  
   banco <- eventReactive(input$button, {
     start <- Sys.time()
     cat("Downloading main data. ") 
+    withProgress(message="Por favor, espere...",detail="Download dos dados", value=0.3,{
     uf <- input$State
     partido <- input$Party
     vars <- list("NUM_TURNO","UF","NUMERO_PARTIDO","ANO_ELEICAO","COD_MUN_IBGE","QTDE_VOTOS","NUMERO_CANDIDATO","SIGLA_PARTIDO","NOME_URNA_CANDIDATO","DESC_SIT_TOT_TURNO")
@@ -291,6 +284,7 @@ server <- function(input, output, session) {
     banco <- banco[banco$NUM_TURNO == turno(),]
     end_beginning <- round(difftime(Sys.time(), start, units = "secs"), 2)
     cat("CHECK!!! (", end_beginning, "seconds)\n", sep = "")
+    })
     return(banco)
   })
   
@@ -334,7 +328,7 @@ server <- function(input, output, session) {
                       "DESC_SIT_TOT_TURNO"   = character())
     }
     end <- Sys.time()
-    end_beginning <- difftime(start, end, units = "secs")
+    end_beginning <- round(difftime(end,start, units = "secs"), 2)
     cat("Calculating 'd' value. CHECK!!! (", end_beginning, "seconds)\n")
     return(d)
   })
@@ -417,17 +411,30 @@ server <- function(input, output, session) {
       addProviderTiles("CartoDB.Positron")
   })
   
+  shape_estado <- reactive({
+    ### Input ###
+    uf <- input$State
+    
+    ### Data ###
+    shape_estado <- readr::read_rds(paste0("data/shape_states/", uf,".rds"))
+    
+    return(shape_estado)
+  })
+  
   observe({
-    geo <- brmap_estado$geometry[brmap_estado$estado_sigla == input$State][[1]][[1]]
+    geo <- as.numeric(st_bbox(shape_estado()))
+    
+    ### Base Map ###
     
     leafletProxy("map") %>%
       clearShapes() %>%
-      addPolygons(data = brmap_estado[brmap_estado$estado_sigla == input$State,],
+      clearControls() %>% 
+      addPolygons(data = shape_estado(),
                   fillOpacity  = 0,
                   weight       = 3,
                   color        = "black",
                   fillColor    = NULL) %>% 
-      flyToBounds(min(geo[,1]), min(geo[,2]), max(geo[,1]), max(geo[,2]))
+      flyToBounds(geo[3], geo[4], geo[1], geo[2])
   })
   
   observe({
@@ -473,7 +480,7 @@ server <- function(input, output, session) {
     leafletProxy("map") %>%
       clearControls() %>% 
       clearShapes() %>% 
-      addPolygons(data = brmap_estado[brmap_estado$estado_sigla == input$State,],
+      addPolygons(data = shape_estado(),
                   fillOpacity  = 0,
                   weight       = 3,
                   color        = "black",
@@ -482,7 +489,7 @@ server <- function(input, output, session) {
                   layerId      = dz5()@data[,switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share","Medida QL"="LQ")],
                   fillOpacity  = 0.8,
                   weight       = 0.1,
-                  color        = NA,
+                  color        = "black",
                   fillColor    = pal(dz5()@data[,switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share","Medida QL"="LQ")]),
                   popup        = popup_text) %>%
       addLegend(position       = "bottomright",
