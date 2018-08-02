@@ -192,7 +192,7 @@ server <- function(input, output, session) {
     party <- input$Party
     candidatos <- candidatos_value()
     
-    if(paste0(ano,uf,cargo) == readRDS("pre.rds")){
+    if(paste0(ano,uf,cargo, party) == readRDS("pre.rds")){
       cat("Outputing candidates UI. ")
       if(cargo %in% c(5,6)){
         UI <- selectInput("candidato",
