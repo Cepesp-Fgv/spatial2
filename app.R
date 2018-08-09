@@ -36,19 +36,21 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                     leafletOutput("map",width="100%",height="100%")),
                            bootstrapPage(absolutePanel(id = "note", class = "panel panel-default", fixed = TRUE,
                                                       draggable = TRUE, top = 60, left = "auto", right = 30, bottom = "auto",
-                                                      width = 330, height = "auto",HTML('<button data-toggle="collapse" data-target="#demo">Info</button>'),
+                                                      width = 330, height = "auto",
+                                                      HTML('<button data-toggle="collapse" data-target="#demo">Info</button>'),
                                                       tags$div(id = 'demo',  class="collapse in",htmlOutput("Note"))
                           ))
                  ),
                  tabPanel("Charts",
                           fluidRow(column(width=4,""),column(width=4,plotOutput("G_cand")),column(width=4,plotOutput("I_cand"))),
                           bootstrapPage(absolutePanel(id = "cuts", class = "panel panel-default", fixed = TRUE,
-                                        draggable = TRUE, top = "auto", left = "auto", right = 30, bottom = 60,
-                                        width = 700, height = "auto",h4("Winning candidates tend to have more diffuse (low G) and contiguous (high I) support"),
-                                        radioButtons("Cut",
-                                                    label = "Data:",
-                                                    choices = list("All","Selected Year","Selected State","Selected Party"),
-                                                    selected = "All")
+                                                      draggable = TRUE, top = "auto", left = "auto", right = 30, bottom = 60,
+                                                      width = 700, height = "auto",
+                                                      h4("Winning candidates tend to have more diffuse (low G) and contiguous (high I) support"),
+                                                      radioButtons("Cut",
+                                                                   label = "Data:",
+                                                                   choices = list("All","Selected Year","Selected State","Selected Party"),
+                                                                   selected = "All")
                  ))
                  ),
                  tabPanel("Classify",
@@ -87,7 +89,8 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                                      selected = 2014),
                                          selectInput("State", 
                                                      label = "Escolha um estado:",
-                                                     choices = c("AC","AM","AL","AP","BA","CE","DF","ES","GO","MA","MS","MG","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"),
+                                                     choices = c("AC","AM","AL","AP","BA","CE","DF","ES","GO","MA","MS","MG","MT","PA",
+                                                                 "PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"),
                                                      selected = NULL),
                                          uiOutput("party_UI"),
                                          uiOutput("cand_UI"),
@@ -425,6 +428,9 @@ server <- function(input, output, session) {
   observe({
     geo <- as.numeric(st_bbox(shape_estado()))
     
+    cargo <- input$cargo
+    candi <- input$candidato
+    
     ### Base Map ###
     
     leafletProxy("map") %>%
@@ -479,13 +485,6 @@ server <- function(input, output, session) {
                               round(dz5()@data[dz5()@data$category=="High-High","LQ"],3))
 
     leafletProxy("map") %>%
-      clearControls() %>% 
-      clearShapes() %>% 
-      addPolygons(data = shape_estado(),
-                  fillOpacity  = 0,
-                  weight       = 3,
-                  color        = "black",
-                  fillColor    = NULL) %>% 
       addPolygons(data         = dz5(),
                   layerId      = dz5()@data[,switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share","Medida QL"="LQ")],
                   fillOpacity  = 0.8,
