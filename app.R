@@ -96,7 +96,7 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                          uiOutput("cand_UI"),
                                          radioButtons("Indicator",
                                                       label = "Indicador:",
-                                                      choices = list("Proporção de Votos", "Medida QL"),
+                                                      choices = list("Proporção de Votos no Município" = "Proporção de Votos", "Medida QL"),
                                                       selected = "Proporção de Votos"),
                                          actionButton("button", label = strong("Atualizar"), width = "95%"),
                                          HTML(paste0("<hr> </hr>")),
@@ -458,6 +458,8 @@ server <- function(input, output, session) {
     
     cargo <- input$cargo
     candi <- input$candidato
+    uf <- input$State
+    party <- input$Party
     
     ### Base Map ###
     
@@ -528,6 +530,7 @@ server <- function(input, output, session) {
                   fillColor    = pal(dz5_use@data[,switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share","Medida QL"="LQ")]),
                   popup        = popup_text) %>%
       addLegend(position       = "bottomright",
+                title          = ifelse(input$Indicator=="Medida QL","Medida QL","% Votos no Município"),
                 pal            = pal,
                 values         = dz5_use@data[,switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share","Medida QL"="LQ")],
                 opacity        = 0.8,
