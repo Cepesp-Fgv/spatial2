@@ -1,0 +1,13 @@
+name: spatial2_teste
+title: spatial2_teste
+username:
+account: rccsilva
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 389009
+bundleId: 1514686
+url: https://rccsilva.shinyapps.io/spatial2_teste/
+when: 1533223032.80866
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: appspec.yml|README.md
