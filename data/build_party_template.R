@@ -14,6 +14,7 @@ get_candidatos <- function(ano, cargo){
     httr::content(type = "text/plain", encoding = "UTF-8") %>% 
     readr::read_csv(col_types = cols_only(ANO_ELEICAO                    = col_integer(),
                                           SIGLA_UF                       = col_character(),
+                                          NUM_TURNO                      = col_integer(),
                                           CODIGO_CARGO                   = col_integer(),
                                           NUMERO_PARTIDO                 = col_integer(),
                                           SIGLA_PARTIDO                  = col_character()),
@@ -32,16 +33,10 @@ candidatos_ls <- pmap(args,get_candidatos)
 
 candidatos_df <- bind_rows(candidatos_ls)
 
-candidatos_df$PARTIDOS <- vector(mode = "list", length = nrow(candidatos_df))
-
-PARTIDOS <- as.list(candidatos_df$NUMERO_PARTIDO)
-
-names(PARTIDOS) <- candidatos_df$SIGLA_PARTIDO
-
 candidatos_df$PARTIDOS <- PARTIDOS
 
-t<- candidatos_df %>% 
-  group_by(ANO_ELEICAO, SIGLA_UF, CODIGO_CARGO) %>% 
-  summarise(TESTE = list(PARTIDOS))
+candidatos_df <- candidatos_df %>% 
+  group_by(ANO_ELEICAO, NUM_TURNO, SIGLA_UF, CODIGO_CARGO) %>% 
+  summarise(PARTIDOS = list(SIGLA_PARTIDO))
 
 write_rds(candidatos_df, "data/party_template.rds")
