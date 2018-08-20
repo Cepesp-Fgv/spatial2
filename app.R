@@ -104,6 +104,7 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                          htmlOutput("G_Index"),
                                          htmlOutput("moran"))
                                
+
                  )
 )
 
