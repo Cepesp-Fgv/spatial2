@@ -90,7 +90,7 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                                      label = "Escolha um estado:",
                                                      choices = c("AC","AM","AL","AP","BA","CE","DF","ES","GO","MA","MS","MG","MT","PA",
                                                                  "PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"),
-                                                     selected = NULL),
+                                                     selected = "RJ"),
                                          uiOutput("party_UI"),
                                          uiOutput("cand_UI"),
                                          radioButtons("Indicator",
@@ -521,6 +521,7 @@ server <- function(input, output, session) {
                               round(dz5_use@data[dz5_use@data$category=="High-High","LQ"],3))
 
     leafletProxy("map") %>%
+    addProviderTiles("CartoDB.Positron") %>% 
       clearControls() %>% 
       addPolygons(data         = dz5_use,
                   layerId      = dz5_use@data[,switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share","Medida QL"="LQ")],
