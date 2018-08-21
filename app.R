@@ -262,11 +262,11 @@ server <- function(input, output, session) {
   
   ### Test Query ###
 
-  # input <- tibble::tibble(cargo = 1,
+  # input <- tibble::tibble(cargo = 5,
   #                         Year = 2014,
-  #                         turno = 2,
-  #                         Party = "PT",
-  #                         State  = "SP")
+  #                         turno = 1,
+  #                         Party = "DEM",
+  #                         State  = "MT")
   # url <- "http://api.cepesp.io/api/consulta/tse"
   
   banco <- eventReactive(input$button, {
@@ -291,8 +291,12 @@ server <- function(input, output, session) {
                    "columns[0][search][value]" = uf,
                    "columns[1][name]"          = "NUMERO_PARTIDO",
                    "columns[1][search][value]" = sigla_partidos[partido])
-    consulta <- append(append(list(cached=TRUE,anos = input$Year,uf=input$State,agregacao_regional=6,
-                                   agregacao_politica=2, cargo= cargo),vars),filter)
+    consulta <- append(append(list(cached             = TRUE,
+                                   anos               = input$Year,
+                                   uf                 = input$State,
+                                   agregacao_regional = 6,
+                                   agregacao_politica = 2,
+                                   cargo              = cargo),vars),filter)
     banco <- content(GET(url,query=consulta),type="text/plain", encoding = "UTF-8")
     banco <- readr::read_csv(banco, col_types = list(NUMERO_PARTIDO      = readr::col_integer(),
                                                      NOME_URNA_CANDIDATO = readr::col_character(),
