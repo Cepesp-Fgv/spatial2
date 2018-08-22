@@ -468,7 +468,6 @@ server <- function(input, output, session) {
     ### Base Map ###
     
     leafletProxy("map") %>%
-    addProviderTiles(providers$CartoDB.Positron) %>%
       clearShapes() %>%
       clearControls() %>% 
       addPolygons(data = shape_estado(),
@@ -526,7 +525,6 @@ server <- function(input, output, session) {
                               round(dz5_use@data[dz5_use@data$category=="High-High","LQ"],3))
 
     leafletProxy("map") %>%
-    addProviderTiles(providers$CartoDB.Positron) %>% 
       clearControls() %>% 
       addPolygons(data         = dz5_use,
                   layerId      = dz5_use@data[,switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share","Medida QL"="LQ")],
