@@ -23,7 +23,7 @@ library(DT)
 library(magrittr)
 source("global.R")
 
-ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
+ui <- navbarPage("CEPESPData",id="nav",theme=shinytheme("flatly"),
                  tabPanel("Mapa",div(class="outer",
                                     tags$head(
                                       includeCSS("styles.css")
@@ -41,7 +41,7 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                                       tags$div(id = 'demo',  class="collapse in",htmlOutput("Note"))
                           ))
                  ),
-                 tabPanel("Charts",
+                 tabPanel("Gráficos",
                           fluidRow(column(width=4,""),column(width=4,plotOutput("G_cand")),column(width=4,plotOutput("I_cand"))),
                           bootstrapPage(absolutePanel(id = "cuts", class = "panel panel-default", fixed = TRUE,
                                                       draggable = TRUE, top = "auto", left = "auto", right = 30, bottom = 60,
@@ -53,7 +53,7 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                                                    selected = "All")
                  ))
                  ),
-                 tabPanel("Classify",
+                 tabPanel("Classificar",
                           column(width=4,""),
                           column(width=4,plotOutput("quadrant",click="plot_click",hover="plot_hover"),
                                  uiOutput("hover_info"),
@@ -66,7 +66,7 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                           column(width=4,htmlOutput("Num_clusters"),h4("Cluster Summary"),dataTableOutput("Clusters_agg"),h4("Municipalities by Cluster"),dataTableOutput("Clusters")),
                           column(width=4,leafletOutput("map_clusters",width="500px",height="400px"))
                  ),
-                 tabPanel("Extremes",
+                 tabPanel("Extremos",
                           column(width=4,""),
                           column(width=4,h4("Top and Bottom 5 G Index in this State and Year"),dataTableOutput("Extremes")),
                           column(width=4,leafletOutput("map_selected_hi",width="500px",height="400px"))
