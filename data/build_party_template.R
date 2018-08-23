@@ -27,6 +27,8 @@ library(tidyverse)
 candidatos_df <- read_rds('data/complete_data/candidatos.rds')
 
 template <- candidatos_df %>% 
+  filter(DES_SITUACAO_CANDIDATURA %in% c('DEFERIDO',
+                                         'DEFERIDO COM RECURSO')) %>% 
   group_by(ANO_ELEICAO, NUM_TURNO, SIGLA_UF, CODIGO_CARGO, SIGLA_PARTIDO) %>% 
   summarise(LISTA_NOMES  = list(NOME_URNA_CANDIDATO),
             LISTA_NUMERO = list(NUMERO_CANDIDATO))
