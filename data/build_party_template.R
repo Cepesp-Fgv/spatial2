@@ -29,7 +29,13 @@ candidatos_df <- read_rds('data/complete_data/candidatos.rds')
 template <- candidatos_df %>% 
   filter(DES_SITUACAO_CANDIDATURA %in% c('DEFERIDO',
                                          'DEFERIDO COM RECURSO')) %>% 
-  group_by(ANO_ELEICAO, NUM_TURNO, SIGLA_UF, CODIGO_CARGO, SIGLA_PARTIDO) %>% 
+  mutate(RESULTADO = ifelse(DESC_SIT_TOT_TURNO %in% c('ELEITO',
+                                                      'ELEITO POR QP',
+                                                      'ELEITO POR MÉDIA',
+                                                      'MÉDIA'),
+                            1,
+                            2)) %>% 
+  group_by(ANO_ELEICAO, NUM_TURNO, SIGLA_UF, CODIGO_CARGO, SIGLA_PARTIDO, RESULTADO) %>% 
   summarise(LISTA_NOMES  = list(NOME_URNA_CANDIDATO),
             LISTA_NUMERO = list(NUMERO_CANDIDATO))
 
