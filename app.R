@@ -75,41 +75,43 @@ ui <- navbarPage("Spatial Voting",id="nav",theme = shinytheme("flatly"),
                                draggable = FALSE, top = 120, left = 10, right = "auto", bottom = "auto",
                                width = 330, height = "auto",
                                fluidPage(h4("Resultados Eleitorais"),
+                                         selectizeInput("State", 
+                                                        label = NULL,
+                                                        choices = c("","AC","AM","AL","AP","BA","CE","ES","GO","MA","MS","MG","MT","PA",
+                                                                    "PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"),
+                                                        selected = NULL,
+                                                        options  = list(placeholder = 'Escolha um estado:',allowEmptyOption=TRUE)),
                                          selectizeInput("cargo", 
-                                                        label = "Escolha um cargo:",
-                                                        choices = list("Governador" = 3, 
+                                                        label = NULL,
+                                                        choices = list("",
+                                                                       "Governador" = 3, 
                                                                        "Senador"    = 5,
                                                                        "Deputado Federal" = 6,
                                                                        "Deputado Estadual"= 7),
-                                                        selected = 6),
+                                                        selected = NULL,
+                                                        options  = list(placeholder = 'Escolha um cargo:',allowEmptyOption=TRUE)),
                                          selectizeInput("Year", 
-                                                        label = "Escolha um ano:",
-                                                        choices = c(1998,2002,2006,2010,2014),
-                                                        selected = 2014),
+                                                        label = NULL,
+                                                        choices = c("",
+                                                                    1998,2002,2006,2010,2014),
+                                                        selected = NULL,
+                                                        options  = list(placeholder = 'Escolha um ano:',allowEmptyOption=TRUE)),
                                          uiOutput("turno_UI"),
-                                                                                  selectInput("State", 
-                                                     label = "Escolha um estado:",
-                                                     choices = c("AC","AM","AL","AP","BA","CE","ES","GO","MA","MS","MG","MT","PA",
-                                                                 "PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"),
-                                                     selected = "RJ"),
                                          uiOutput("party_UI"),
                                          uiOutput("cand_UI"),
                                          radioButtons("Indicator",
                                                       label = "Indicador:",
-                                                      choices = list("Proporção de Votos do Candidato" = "1",
+                                                      choices = list("Proporção de Votos do Candidato" = 1,
                                                                      "Proporção de Votos no Município" = "Proporção de Votos",
                                                                      "Medida QL"),
-                                                      selected = "Proporção de Votos"),
-                                         checkboxInput("eleito","Somente Candidatos Eleitos?",value = 1),
-                                         actionButton("button", label = strong("Atualizar"), width = "95%"),
-                                         HTML(paste0("<hr> </hr>")),
-                                         htmlOutput("Result"),
-                                         htmlOutput("G_Index"),
-                                         htmlOutput("moran"))
-                               
-
+                                                      selected = 1),
+                                         checkboxInput("eleito","Somente Candidatos Eleitos?",value = 1)),
+                               actionButton("button", label = strong("Atualizar"), width = "95%"),
+                               HTML(paste0("<hr> </hr>")),
+                               htmlOutput("Result"),
+                               htmlOutput("G_Index"),
+                               htmlOutput("moran"))
                  )
-)
 
 server <- function(input, output, session) {
 
@@ -126,11 +128,13 @@ server <- function(input, output, session) {
   output$turno_UI <- renderUI({
     cargo <- as.numeric(input$cargo)
     if(cargo %in% c(1,3)){
-      selectInput("turno_value", 
-                  label = "Escolha um turno:",
-                  choices = list(`1º Turno` = 1,
-                                 `2º Turno` = 2),
-                  selected = 1)
+      selectizeInput("turno_value", 
+                     label = NULL,
+                     choices = list("",
+                                    "1º Turno" = 1,
+                                    "2º Turno" = 2),
+                     selected = NULL,
+                     options  = list(placeholder = 'Escolha um turno:',allowEmptyOption=TRUE))
     }
   })
   
@@ -141,6 +145,10 @@ server <- function(input, output, session) {
     ano <- as.numeric(input$Year)
     turno <- turno()
     
+    cargo <- ifelse(is.na(cargo), break(),cargo)
+    ano <- ifelse(is.na(cargo), break(),ano)
+    
+    
     if(cargo == 1){
       uf <- "BR"
     } else {
@@ -150,16 +158,17 @@ server <- function(input, output, session) {
                                                party_template$SIGLA_UF == uf &
                                                party_template$ANO_ELEICAO == ano &
                                                party_template$NUM_TURNO == turno])
-    choices <- c("Todos", unique(sort(choices)))
+    choices <- c("Todos os Partidos", unique(sort(choices)))
     return(choices)
   }) 
   
   output$party_UI <- renderUI({
     partidos <- partidos_escolhas()
-    selectInput("Party",
-                label = "Escolha um partido:",
-                choices = partidos,
-                selected = partidos[[1]])
+    selectizeInput("Party",
+                   label = NULL,
+                   choices = partidos,
+                   selected = "Todos os Partidos",
+                   options  = list(placeholder = 'Escolha um partido:',allowEmptyOption=TRUE))
   })
   
   ### Candidato ###
@@ -171,30 +180,30 @@ server <- function(input, output, session) {
     partido <- input$Party
     eleito <- as.numeric(input$eleito)
     turno <- turno()
+    uf <- input$State
     
-    if(cargo == 1){
-      uf <- "BR"
-    } else {
-      uf <- input$State
-    }
+    # if(cargo == 1){
+    #   uf <- "BR"
+    # } else {
+    #   uf <- input$State
+    # }
     
     if(eleito == 1){
       party_template <- party_template[party_template$RESULTADO == eleito,]
     }
-    
-    choices <- (party_template$LISTA_NUMERO[party_template$CODIGO_CARGO == cargo &
+
+    choices <- party_template$LISTA_NUMERO[party_template$CODIGO_CARGO == cargo &
                                                party_template$SIGLA_UF == uf &
                                                party_template$ANO_ELEICAO == ano &
-                                               party_template$NUM_TURNO == turno &
-                                              party_template$RESULTADO]) %>% 
+                                               party_template$NUM_TURNO == turno] %>% 
       unlist()
-
-    if(partido != "Todos"){
-      choices <- (party_template$LISTA_NUMERO[party_template$CODIGO_CARGO == cargo &
+    
+    if(partido != "Todos os Partidos"){
+      choices <- party_template$LISTA_NUMERO[party_template$CODIGO_CARGO == cargo &
                                                 party_template$SIGLA_UF == uf &
                                                 party_template$ANO_ELEICAO == ano &
                                                 party_template$NUM_TURNO == turno &
-                                                party_template$SIGLA_PARTIDO == partido]) %>% 
+                                                party_template$SIGLA_PARTIDO == partido] %>% 
         unlist()
     }
     
@@ -219,12 +228,16 @@ server <- function(input, output, session) {
 
     candidatos <- candidatos_value()
     
+    # candidatos <- c("", candidatos)
+    
     print(paste0("candidato: ", candidatos[[1]]))
+
     cat("Outputing candidates UI. ")
-    UI <- selectInput("candidato",
-                      label = "Escolha um candidato:",
-                      choices = candidatos,
-                      selected = candidatos[[1]])
+    UI <- selectizeInput("candidato",
+                         label = NULL,
+                         choices = candidatos,
+                         selected = NULL,
+                         options  = list(placeholder = 'Escolha um candidato:',allowEmptyOption=TRUE))
   })
   
   ## Data Querys ##
@@ -443,7 +456,10 @@ server <- function(input, output, session) {
   })
   
   shape_estado <- reactive({
-    shape_estado <- readr::read_rds(paste0("data/shape_states/", input$State,".rds"))
+    uf <- input$State
+    if(uf == "")
+      uf <- "br"
+    shape_estado <- readr::read_rds(paste0("data/shape_states/", uf,".rds"))
   })
   
   observe({
