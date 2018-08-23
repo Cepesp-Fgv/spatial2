@@ -98,6 +98,7 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                                       label = "Indicador:",
                                                       choices = list("Proporção de Votos no Município" = "Proporção de Votos", "Medida QL"),
                                                       selected = "Proporção de Votos"),
+                                         checkboxInput("eleito","Somente Candidatos Eleitos?",value = 1),
                                          actionButton("button", label = strong("Atualizar"), width = "95%"),
                                          HTML(paste0("<hr> </hr>")),
                                          htmlOutput("Result"),
@@ -166,6 +167,7 @@ server <- function(input, output, session) {
     cargo <- as.numeric(input$cargo)
     ano <- as.numeric(input$Year)
     partido <- input$Party
+    eleito <- as.numeric(input$eleito)
     turno <- turno()
     
     if(cargo == 1){
@@ -173,10 +175,20 @@ server <- function(input, output, session) {
     } else {
       uf <- input$State
     }
+    
+    print(party_template)
+    
+    if(eleito == 1){
+      party_template <- party_template[party_template$RESULTADO == eleito,]
+    }
+    
+    print(party_template)
+    
     choices <- (party_template$LISTA_NUMERO[party_template$CODIGO_CARGO == cargo &
                                                party_template$SIGLA_UF == uf &
                                                party_template$ANO_ELEICAO == ano &
-                                               party_template$NUM_TURNO == turno]) %>% 
+                                               party_template$NUM_TURNO == turno &
+                                              party_template$RESULTADO]) %>% 
       unlist()
 
     if(partido != "Todos"){
