@@ -23,7 +23,7 @@ library(DT)
 library(magrittr)
 source("global.R")
 
-ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
+ui <- navbarPage("Spatial Voting",id="nav",theme = shinytheme("flatly"),
                  tabPanel("Mapa",div(class="outer",
                                     tags$head(
                                       includeCSS("styles.css")
@@ -75,17 +75,17 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                draggable = FALSE, top = 120, left = 10, right = "auto", bottom = "auto",
                                width = 330, height = "auto",
                                fluidPage(h4("Resultados Eleitorais"),
-                                         selectInput("cargo", 
-                                                     label = "Escolha um cargo:",
-                                                     choices = list("Governador" = 3, 
-                                                                    "Senador"    = 5,
-                                                                    "Deputado Federal" = 6,
-                                                                    "Deputado Estadual"= 7),
-                                                     selected = 6),
-                                         selectInput("Year", 
-                                                     label = "Escolha um ano:",
-                                                     choices = c(1998,2002,2006,2010,2014),
-                                                     selected = 2014),
+                                         selectizeInput("cargo", 
+                                                        label = "Escolha um cargo:",
+                                                        choices = list("Governador" = 3, 
+                                                                       "Senador"    = 5,
+                                                                       "Deputado Federal" = 6,
+                                                                       "Deputado Estadual"= 7),
+                                                        selected = 6),
+                                         selectizeInput("Year", 
+                                                        label = "Escolha um ano:",
+                                                        choices = c(1998,2002,2006,2010,2014),
+                                                        selected = 2014),
                                          uiOutput("turno_UI"),
                                                                                   selectInput("State", 
                                                      label = "Escolha um estado:",
@@ -96,7 +96,9 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                          uiOutput("cand_UI"),
                                          radioButtons("Indicator",
                                                       label = "Indicador:",
-                                                      choices = list("Proporção de Votos no Município" = "Proporção de Votos", "Medida QL"),
+                                                      choices = list("Proporção de Votos do Candidato" = "1",
+                                                                     "Proporção de Votos no Município" = "Proporção de Votos",
+                                                                     "Medida QL"),
                                                       selected = "Proporção de Votos"),
                                          checkboxInput("eleito","Somente Candidatos Eleitos?",value = 1),
                                          actionButton("button", label = strong("Atualizar"), width = "95%"),
@@ -176,13 +178,9 @@ server <- function(input, output, session) {
       uf <- input$State
     }
     
-    print(party_template)
-    
     if(eleito == 1){
       party_template <- party_template[party_template$RESULTADO == eleito,]
     }
-    
-    print(party_template)
     
     choices <- (party_template$LISTA_NUMERO[party_template$CODIGO_CARGO == cargo &
                                                party_template$SIGLA_UF == uf &
@@ -287,9 +285,7 @@ server <- function(input, output, session) {
     partido <- stringr::str_remove_all(input$Party, " ")
     cargo <- as.numeric(input$cargo)
     candidato <- as.numeric(input$candidato)
-    
-    print(candidato)
-    
+  
     cat("Downloading main data (uf=", uf, "; partido=", partido, ";cargo=", cargo, ";candidato=",candidato,")\n", sep = "") 
     
     vars <- list("NUM_TURNO","UF","NUMERO_PARTIDO","ANO_ELEICAO","COD_MUN_IBGE",
@@ -324,8 +320,11 @@ server <- function(input, output, session) {
     d <- merge(d,isolate(mun_totals()), by="COD_MUN_IBGE")
     d <- merge(d,isolate(state_totals()), by="UF")
 
-    d[,Tot_Deputado := sum(QTDE_VOTOS),by=.(ANO_ELEICAO,UF,NUMERO_CANDIDATO)]
+    d[,Tot_Deputado := sum(QTDE_VOTOS), by=.(ANO_ELEICAO,UF,NUMERO_CANDIDATO)]
     d[,Mun_Vote_Share := (QTDE_VOTOS/Tot_Mun)*100]
+    d[,Cand_Vote_Share := (QTDE_VOTOS/Tot_Deputado)*100]
+    
+    print(d)
     
     incProgress(amount = 0.7)
     
@@ -360,7 +359,7 @@ server <- function(input, output, session) {
   mun_state_contig <- reactive({
     beginning <- Sys.time()
     names(mun)[which(names(mun)=="UF")] <- "UF_shape"
-    mun_state <- mun[mun$UF_shape==input$State,]
+    mun_state <- mun[mun$UF_shape == input$State,]
     state_nb <- poly2nb(mun_state)
     if (any(card(state_nb)==0)){
       mun_state_contig <- mun_state[-which(card(state_nb)==0),]  
@@ -379,14 +378,14 @@ server <- function(input, output, session) {
     
     candidato <- isolate(input$candidato)
     
-    dz3_temp <- merge(mun_state_contig(),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
+    dz3_temp <- merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
     dz3_temp@data[is.na(dz3_temp@data[,"LQ"])==TRUE,"LQ"] <- 0
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"Mun_Vote_Share"] <- 0
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"Tot_State"] <- mean(dz3_temp@data[,"Tot_State"],na.rm=TRUE)
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"Tot_Deputado"] <- mean(dz3_temp@data[,"Tot_Deputado"],na.rm=TRUE)
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"NOME_URNA_CANDIDATO"] <- candidato
     dz3_temp$Tot_Mun <- NULL
-    dz3_temp <- merge(dz3_temp,mun_totals(),by.x="GEOCOD",by.y="COD_MUN_IBGE")
+    dz3_temp <- merge(dz3_temp,isolate(mun_totals()),by.x="GEOCOD",by.y="COD_MUN_IBGE")
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"QTDE_VOTOS"] <- 0
     end <- Sys.time()
     cat("Time for merging candidate data with shapefile:",end-beginning,".\n")
@@ -413,7 +412,7 @@ server <- function(input, output, session) {
     ## Reactive events
     
     dz4 <- dz3()
-    state_nb2listw <- state_nb2listw()
+    state_nb2listw <- isolate(state_nb2listw())
     #dz4 <- dz3
     
     lisa <- as.data.frame(localmoran(dz4$LQ,state_nb2listw))
@@ -481,9 +480,13 @@ server <- function(input, output, session) {
                           domain   = c(0,1000),
                           bins     = c(0,0.01,1,5,10,50,1000),
                           na.color = "white")
+    } else if(input$Indicator == "1") {
+      pal <- colorNumeric(palette  = c("white","red"),
+                          domain   = c(0,max(dz5_use@data[["Cand_Vote_Share"]],na.rm=TRUE)),
+                          na.color = "white")
     } else {
       pal <- colorNumeric(palette  = c("white","red"),
-                          domain   = c(0,max(dz5_use@data[,"Mun_Vote_Share"],na.rm=TRUE)),
+                          domain   = c(0,max(dz5_use@data[["Mun_Vote_Share"]],na.rm=TRUE)),
                           na.color = "white")
     }
 
@@ -525,12 +528,19 @@ server <- function(input, output, session) {
                   fillOpacity  = 0.8,
                   weight       = 0.1,
                   color        = "black",
-                  fillColor    = pal(dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share","Medida QL"="LQ")]]),
+                  fillColor    = pal(dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share",
+                                                          "Medida QL" = "LQ",
+                                                          "1"         = "Cand_Vote_Share")]]),
                   popup        = popup_text) %>%
       addLegend(position       = "bottomright",
-                title          = ifelse(input$Indicator == "Medida QL","Medida QL","% Votos no Município"),
+                title          = switch(input$Indicator,
+                                        "Medida QL" = "Medida QL",
+                                        "Proporção de Votos" = "% Votos no Município",
+                                        "1"                  = "% Votos do(a) Candidato(a)"),
                 pal            = pal,
-                values         = dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share","Medida QL"="LQ")]],
+                values         = dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share",
+                                                      "Medida QL"="LQ",
+                                                      "1"         = "Cand_Vote_Share")]],
                 opacity        = 0.8,
                 labFormat      = labelFormat(suffix = "%"))  %>%
       addPolygons(data         = dz5_use[dz5_use@data$category=="High-High",],
