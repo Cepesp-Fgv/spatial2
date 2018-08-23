@@ -28,8 +28,8 @@ candidatos_df <- read_rds('data/complete_data/candidatos.rds')
 
 template <- candidatos_df %>% 
   group_by(ANO_ELEICAO, NUM_TURNO, SIGLA_UF, CODIGO_CARGO, SIGLA_PARTIDO) %>% 
-  summarise(LISTA_NOMES  = list(NOME_CANDIDATO),
-            LISTA_NUMERO = list(NOME_URNA_CANDIDATO))
+  summarise(LISTA_NOMES  = list(NOME_URNA_CANDIDATO),
+            LISTA_NUMERO = list(NUMERO_CANDIDATO))
 
 for(i in seq_along(template$LISTA_NUMERO)){
   names(template$LISTA_NUMERO[[i]]) <- template$LISTA_NOMES[[i]]
