@@ -89,7 +89,7 @@ ui <- navbarPage("Spatial Voting",id="nav",theme=shinytheme("flatly"),
                                          uiOutput("turno_UI"),
                                                                                   selectInput("State", 
                                                      label = "Escolha um estado:",
-                                                     choices = c("AC","AM","AL","AP","BA","CE","DF","ES","GO","MA","MS","MG","MT","PA",
+                                                     choices = c("AC","AM","AL","AP","BA","CE","ES","GO","MA","MS","MG","MT","PA",
                                                                  "PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"),
                                                      selected = "RJ"),
                                          uiOutput("party_UI"),
@@ -178,12 +178,7 @@ server <- function(input, output, session) {
                                                party_template$ANO_ELEICAO == ano &
                                                party_template$NUM_TURNO == turno]) %>% 
       unlist()
-    # input <- tibble::tibble(cargo = 6,
-    #                         Year = 2014,
-    #                         turno = 1,
-    #                         Party = "PSDB",
-    #                         State  = "SP")
-    # url <- "http://api.cepesp.io/api/consulta/tse"
+
     if(partido != "Todos"){
       choices <- (party_template$LISTA_NUMERO[party_template$CODIGO_CARGO == cargo &
                                                 party_template$SIGLA_UF == uf &
@@ -262,12 +257,12 @@ server <- function(input, output, session) {
   
   ### Test Query ###
 
-  # input <- tibble::tibble(cargo = 7,
+  # input <- tibble::tibble(cargo = 6,
   #                         Year = 2014,
   #                         turno = 1,
-  #                         Party = "PRB",
-  #                         State  = "AC",
-  #                         candidato = "10190")
+  #                         Party = "PT",
+  #                         State  = "DF",
+  #                         candidato = "1331")
   # url <- "http://api.cepesp.io/api/consulta/tse"
 
   banco <- eventReactive(input$button, {
@@ -288,37 +283,6 @@ server <- function(input, output, session) {
     vars <- list("NUM_TURNO","UF","NUMERO_PARTIDO","ANO_ELEICAO","COD_MUN_IBGE",
                  "QTDE_VOTOS","NUMERO_CANDIDATO","SIGLA_PARTIDO","NOME_URNA_CANDIDATO",
                  "DESC_SIT_TOT_TURNO")
-    
-    # names(vars) <- rep("selected_columns[]",length(vars))
-    # 
-    # filter <- list("columns[0][name]"          = "UF",
-    #                "columns[0][search][value]" = uf,
-    #                "columns[1][name]"          = "NUMERO_PARTIDO",
-    #                "columns[1][search][value]" = sigla_partidos[partido],
-    #                "columns[2][name]"          = "NUMERO_CANDIDATO",
-    #                "columns[2][search][value]" = candidato)
-    # 
-    # consulta <- append(append(list(cached             = TRUE,
-    #                                anos               = input$Year,
-    #                                uf                 = uf,
-    #                                agregacao_regional = 6,
-    #                                agregacao_politica = 2,
-    #                                cargo              = cargo),
-    #                           vars),
-    #                    filter)
-    # 
-    # banco <- httr::GET(url,query=consulta) %>% 
-    #   httr::content(type="text/plain", encoding = "UTF-8") %>% 
-    #   readr::read_csv(col_types = list(NUMERO_PARTIDO      = readr::col_integer(),
-    #                                    NOME_URNA_CANDIDATO = readr::col_character(),
-    #                                    COD_MUN_IBGE        = readr::col_integer(),
-    #                                    NUMERO_CANDIDATO    = readr::col_integer(),
-    #                                    SIGLA_PARTIDO       = readr::col_character(),
-    #                                    DESC_SIT_TOT_TURNO  = readr::col_character(),
-    #                                    UF                  = readr::col_character(),
-    #                                    NUM_TURNO           = readr::col_integer(),
-    #                                    ANO_ELEICAO         = readr::col_integer(),
-    #                                    QTDE_VOTOS          = readr::col_integer()))
     
     banco <- cepespR::get_elections(input$Year, cargo, candidate_number = candidato, 
                                     state = uf, columns_list = vars)
