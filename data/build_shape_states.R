@@ -8,13 +8,12 @@ library(RCurl)
 
 temp_file <- tempfile()
 
+temp_dir <- tempdir()
+
 url_use <- "ftp://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_municipais/municipio_2015/Brasil/BR/BR.zip"
 
-f = CFILE(temp_file, mode="wb")
-curlPerform(url = url_use, writedata = f@ref)
-close(f)
+download.file(url_use, destfile = temp_file)
 
-temp_dir <- tempdir()
 unzip(temp_file, exdir = temp_dir)
 
 uf_shape <- sf::read_sf(paste0(temp_dir,"/BR/BRUFE250GC_SIR.shp"))
@@ -69,7 +68,6 @@ for(i in seq_along(uf_shape$UF)){
 }
 
 length(list.files("data/shape_states/"))
-
 
 # 3. Shape Brasil ---------------------------------------------------------
 

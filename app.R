@@ -489,7 +489,9 @@ server <- function(input, output, session) {
     proxy %>% 
       clearShapes() %>% 
       addPolygons(data  = shape_estado(),
-                  color = "black")
+                  color = "black",
+                  fillColor = NULL,
+                  fillOpacity = 0)
     
     if (input$Indicator == "Medida QL"){
           pal <- colorBin(palette  = c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),
