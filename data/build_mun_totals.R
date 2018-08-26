@@ -14,7 +14,7 @@ ufs <- list("Acre"                 = "AC",
             "Espírito Santo"       = "ES",
             "Goiás"                = "GO",
             "Maranhão"             = "MA",
-            "Mato Grosso"          = "MO",
+            "Mato Grosso"          = "MT",
             "Mato Grosso do Sul"   = "MS",
             "Minas Gerais"         = "MG",
             "Pará"                 = "PA",
@@ -33,7 +33,7 @@ ufs <- list("Acre"                 = "AC",
             "Tocantins"            = "TO")
 
 anos <- seq(1998, 2014, by = 4)
-cargos <- c(1,3,5,6)
+cargos <- c(7)
 
 args <- expand.grid(ano = anos, cargo = cargos, uf = ufs)
 
