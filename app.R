@@ -21,6 +21,7 @@ library(shinythemes)
 library(dplyr)
 library(DT)
 library(magrittr)
+if(!require(cepespR)) devtools::install_github("Cepesp-Fgv/cepesp-r")
 source("global.R")
 
 ui <- navbarPage("Spatial Voting",id="nav",theme = shinytheme("flatly"),
@@ -41,7 +42,7 @@ ui <- navbarPage("Spatial Voting",id="nav",theme = shinytheme("flatly"),
                                                       tags$div(id = 'demo',  class="collapse in",htmlOutput("Note"))
                           ))
                  ),
-                 tabPanel("Charts",
+                 tabPanel("Gráficos",
                           fluidRow(column(width=4,""),column(width=4,plotOutput("G_cand")),column(width=4,plotOutput("I_cand"))),
                           bootstrapPage(absolutePanel(id = "cuts", class = "panel panel-default", fixed = TRUE,
                                                       draggable = TRUE, top = "auto", left = "auto", right = 30, bottom = 60,
