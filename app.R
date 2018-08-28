@@ -180,7 +180,7 @@ server <- function(input, output, session) {
     ano <- as.numeric(input$Year)
     partido <- input$Party
     eleito <- as.numeric(input$eleito)
-    turno <- turno()
+    turno_use <- turno()
     uf <- input$State
     
     # if(cargo == 1){
@@ -196,14 +196,14 @@ server <- function(input, output, session) {
     choices <- party_template$LISTA_NUMERO[party_template$CODIGO_CARGO == cargo &
                                                party_template$SIGLA_UF == uf &
                                                party_template$ANO_ELEICAO == ano &
-                                               party_template$NUM_TURNO == turno] %>% 
+                                               party_template$NUM_TURNO == turno_use] %>% 
       unlist()
     
     if(partido != "Todos os Partidos"){
       choices <- party_template$LISTA_NUMERO[party_template$CODIGO_CARGO == cargo &
                                                 party_template$SIGLA_UF == uf &
                                                 party_template$ANO_ELEICAO == ano &
-                                                party_template$NUM_TURNO == turno &
+                                                party_template$NUM_TURNO == turno_use &
                                                 party_template$SIGLA_PARTIDO == partido] %>% 
         unlist()
     }
