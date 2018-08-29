@@ -680,15 +680,15 @@ server <- function(input, output, session) {
   })
   
   output$Result <- renderUI({
-    str_Result <- paste0("Resultado: ",
+    str_Result <- paste0("<h3> Resultado: ",
                          unique(dz3()@data$DESC_SIT_TOT_TURNO[is.na(dz3()@data$DESC_SIT_TOT_TURNO)==FALSE]),
-                         " <br> Total de votos do candidato: ",unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE]),
-                         " <br> % dos votos váliados: ",round((unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE])/unique(dz3()@data$Tot_State[is.na(dz3()@data$Tot_State)==FALSE]))*100,1),"%")
+                         " <br> Votos: ",unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE]),
+                         " <br> ",round((unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE])/unique(dz3()@data$Tot_State[is.na(dz3()@data$Tot_State)==FALSE]))*100,1),"% dos votos válidos </h3>")
     HTML(str_Result)
   })
   
   output$G_Index <- renderUI({
-    str_G_Index <- paste0("<b> G Index: ",round(unique(dz3()@data$G_Index[is.na(dz3()@data$G_Index)==FALSE]),3),"<b>")
+    str_G_Index <- paste0("<h2> <b> Índice G: ",round(unique(dz3()@data$G_Index[is.na(dz3()@data$G_Index)==FALSE]),3),"<b> </h2>")
     HTML(str_G_Index)
   })
   
@@ -755,7 +755,7 @@ server <- function(input, output, session) {
   })
   
   output$moran <- renderUI({
-    str_moran <- paste0("<b> Moran's I: ",round(moran_I(),3),"<b>")
+    str_moran <- paste0("<h2> <b> Moran's I: ",round(moran_I(),3),"<b> </h2>")
     HTML(str_moran)
   })
 
