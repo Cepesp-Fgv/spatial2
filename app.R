@@ -144,7 +144,8 @@ server <- function(input, output, session) {
   partidos_escolhas <- reactive({
     cargo <- as.numeric(input$cargo)
     ano <- as.numeric(input$Year)
-    turno <- turno()
+    turno_use <- turno()
+    eleito <-  as.numeric(input$eleito)
     
     cargo <- ifelse(is.na(cargo), break(),cargo)
     ano <- ifelse(is.na(cargo), break(),ano)
@@ -155,10 +156,14 @@ server <- function(input, output, session) {
     } else {
       uf <- input$State
     }
+    if(eleito == 1 & !(turno_use == 1 & cargo == 3)){
+      party_template <- party_template[party_template$RESULTADO == eleito,]
+    }
     choices <- (party_template$SIGLA_PARTIDO[party_template$CODIGO_CARGO == cargo &
                                                party_template$SIGLA_UF == uf &
                                                party_template$ANO_ELEICAO == ano &
-                                               party_template$NUM_TURNO == turno])
+                                               party_template$NUM_TURNO == turno_use])
+    
     choices <- c("Todos os Partidos", unique(sort(choices)))
     return(choices)
   }) 
@@ -189,26 +194,23 @@ server <- function(input, output, session) {
     #   uf <- input$State
     # }
     
-    if(eleito == 1){
-      party_template <- party_template[party_template$RESULTADO == eleito,]
-    }
-
-    choices <- party_template$LISTA_NUMERO[party_template$CODIGO_CARGO == cargo &
-                                               party_template$SIGLA_UF == uf &
-                                               party_template$ANO_ELEICAO == ano &
-                                               party_template$NUM_TURNO == turno_use] %>% 
-      unlist()
+    party_template <- party_template[party_template$CODIGO_CARGO == cargo,]
+    party_template <- party_template[party_template$SIGLA_UF == uf,]
+    party_template <- party_template[party_template$ANO_ELEICAO == ano,]
+    party_template <- party_template[party_template$NUM_TURNO == turno_use,]
     
     if(partido != "Todos os Partidos"){
-      choices <- party_template$LISTA_NUMERO[party_template$CODIGO_CARGO == cargo &
-                                                party_template$SIGLA_UF == uf &
-                                                party_template$ANO_ELEICAO == ano &
-                                                party_template$NUM_TURNO == turno_use &
-                                                party_template$SIGLA_PARTIDO == partido] %>% 
-        unlist()
+      party_template <- party_template$LISTA_NUMERO[party_template$SIGLA_PARTIDO == partido,]
+    }
+ 
+    if(eleito == 1 & !(turno_use == 1 & cargo == 3)){
+      party_template <- party_template[party_template$RESULTADO == eleito,]
     }
     
+    choices <- unlist(party_template$LISTA_NUMERO)
+    
     candidatos_value <- choices[sort(names(choices))]
+    
     cat("CHECK!!!\n")
     print(paste0("candidatos_value: ", candidatos_value[1:10]))
     return(candidatos_value)
