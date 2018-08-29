@@ -47,3 +47,9 @@ h1, h2, h3, h4 { font-weight: 400; }
 .leaflet-container {
   background-color: white !important;
 }
+
+body {
+    -moz-transform: scale(0.7, 0.7); /* Moz-browsers */
+    zoom: 0.7; /* Other non-webkit browsers */
+    zoom: 70%; /* Webkit browsers */
+}
