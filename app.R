@@ -24,7 +24,7 @@ library(magrittr)
 if(!require(cepespR)) devtools::install_github("Cepesp-Fgv/cepesp-r")
 source("global.R")
 
-ui <- navbarPage("Spatial Voting",id="nav",theme = shinytheme("flatly"),
+ui <- navbarPage("CepespData",id="nav",theme = shinytheme("flatly"),
                  tabPanel("Mapa",div(class="outer",
                                     tags$head(
                                       includeCSS("styles.css")
