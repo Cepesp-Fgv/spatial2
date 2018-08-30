@@ -24,7 +24,7 @@ library(magrittr)
 if(!require(cepespR)) devtools::install_github("Cepesp-Fgv/cepesp-r")
 source("global.R")
 
-ui <- navbarPage("CepespData",id="nav",theme = shinytheme("flatly"),
+ui <- navbarPage("CEPESP Data - Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                  tabPanel("Mapa",div(class="outer",
                                     tags$head(
                                       includeCSS("styles.css")
