@@ -206,20 +206,14 @@ server <- function(input, output, session) {
     eleito <- as.numeric(input$eleito)
     turno_use <- turno()
     uf <- input$State
-    
-    # if(cargo == 1){
-    #   uf <- "BR"
-    # } else {
-    #   uf <- input$State
-    # }
-    
+
     party_template <- party_template[party_template$CODIGO_CARGO == cargo,]
     party_template <- party_template[party_template$SIGLA_UF == uf,]
     party_template <- party_template[party_template$ANO_ELEICAO == ano,]
     party_template <- party_template[party_template$NUM_TURNO == turno_use,]
-    
+
     if(partido != "Todos os Partidos"){
-      party_template <- party_template$LISTA_NUMERO[party_template$SIGLA_PARTIDO == partido,]
+      party_template <- party_template[party_template$SIGLA_PARTIDO == partido,]
     }
  
     if(eleito == 1 & !(turno_use == 1 & cargo == 3)){
