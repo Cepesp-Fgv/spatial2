@@ -72,8 +72,8 @@ ui <- navbarPage("Spatial Voting",id="nav",theme = shinytheme("flatly"),
                           column(width=4,h4("Top and Bottom 5 G Index in this State and Year"),dataTableOutput("Extremes")),
                           column(width=4,leafletOutput("map_selected_hi",width="500px",height="400px"))
                  ),
-                 absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
-                               draggable = FALSE, top = 120, left = 10, right = "auto", bottom = "auto",
+                 absolutePanel(id = "controls", class = "panel panel-default", fixed = F,
+                               draggable = F, top = 120, left = 10, right = "auto", bottom = "auto",
                                width = 330, height = "auto",
                                fluidPage(h4("Resultados Eleitorais"),
                                          selectizeInput("State", 
@@ -111,7 +111,8 @@ ui <- navbarPage("Spatial Voting",id="nav",theme = shinytheme("flatly"),
                                HTML(paste0("<hr> </hr>")),
                                htmlOutput("Result"),
                                htmlOutput("G_Index"),
-                               htmlOutput("moran"))
+                               htmlOutput("moran"),
+                               HTML("</br></br>"))
                  )
 
 server <- function(input, output, session) {
@@ -119,7 +120,7 @@ server <- function(input, output, session) {
   ### Turno ###
   turno <- reactive({
     cargo <- as.numeric(input$cargo)
-    if(cargo%in% c(1,3)){
+    if(cargo %in% c(1,3)){
       return(input$turno_value)
     } else {
       return(1)
@@ -142,45 +143,63 @@ server <- function(input, output, session) {
   ### Partido ###
   
   partidos_escolhas <- reactive({
+    cat("Parsing partidos_escolhas\n")
     cargo <- as.numeric(input$cargo)
     ano <- as.numeric(input$Year)
     turno_use <- turno()
     eleito <-  as.numeric(input$eleito)
+    uf <- input$State
     
-    cargo <- ifelse(is.na(cargo), break(),cargo)
-    ano <- ifelse(is.na(cargo), break(),ano)
+    print(cargo)
     
+
+    if(uf == "" | is.na(ano) | is.na(cargo)){
+      cat("Parsing partidos_escolhas. NULL\n")
+      return(NULL)
+    }    
     
-    if(cargo == 1){
-      uf <- "BR"
-    } else {
-      uf <- input$State
-    }
     if(eleito == 1 & !(turno_use == 1 & cargo == 3)){
       party_template <- party_template[party_template$RESULTADO == eleito,]
     }
+    
     choices <- (party_template$SIGLA_PARTIDO[party_template$CODIGO_CARGO == cargo &
                                                party_template$SIGLA_UF == uf &
                                                party_template$ANO_ELEICAO == ano &
                                                party_template$NUM_TURNO == turno_use])
     
     choices <- c("Todos os Partidos", unique(sort(choices)))
+    cat("Parsing partidos_escolhas. CHECK!!!\n")
     return(choices)
   }) 
   
   output$party_UI <- renderUI({
+    cat("Outputing party_UI.\n")
     partidos <- partidos_escolhas()
-    selectizeInput("Party",
-                   label = NULL,
-                   choices = partidos,
-                   selected = "Todos os Partidos",
-                   options  = list(placeholder = 'Escolha um partido:',allowEmptyOption=TRUE))
+    if(is.null(partidos)){
+      cat("Outputing party_UI. NULL\n")
+      return(NULL)
+    }
+    
+    UI <- selectizeInput("Party",
+                         label = NULL,
+                         choices = partidos,
+                         selected = "Todos os Partidos",
+                         options  = list(placeholder = 'Escolha um partido:',allowEmptyOption=TRUE))
+    cat("Outputing party_UI. CHECK!!!\n")
+    return(UI)
   })
   
   ### Candidato ###
 
   candidatos_value <- reactive({
-    cat("Parsing candidates names. ")
+    cat("Parsing candidates names.\n")
+    
+    
+    if(is.null(partidos_escolhas())){
+      cat("Parsing candidates names. NULL\n")
+      return(NULL)
+    } 
+    
     cargo <- as.numeric(input$cargo)
     ano <- as.numeric(input$Year)
     partido <- input$Party
@@ -211,8 +230,7 @@ server <- function(input, output, session) {
     
     candidatos_value <- choices[sort(names(choices))]
     
-    cat("CHECK!!!\n")
-    print(paste0("candidatos_value: ", candidatos_value[1:10]))
+    cat("Parsing candidates names. CHECK!!!\n")
     return(candidatos_value)
   })
   
@@ -228,19 +246,25 @@ server <- function(input, output, session) {
   # })
   
   output$cand_UI <- renderUI({
+    cat("Outputing cand_UI.\n")
 
     candidatos <- candidatos_value()
     
-    # candidatos <- c("", candidatos)
+    if(is.null(candidatos)){
+      cat("Outputing cand_UI. NULL\n")
+      return(NULL)
+    }
     
     print(paste0("candidato: ", candidatos[[1]]))
 
-    cat("Outputing candidates UI. ")
+    cat("Outputing candidates UI.\n ")
     UI <- selectizeInput("candidato",
                          label = NULL,
                          choices = candidatos,
                          selected = NULL,
                          options  = list(placeholder = 'Escolha um candidato:',allowEmptyOption=TRUE))
+    cat("Outputing cand_UI. CHECK!!!\n")
+    return(UI)
   })
   
   ## Data Querys ##
@@ -292,6 +316,7 @@ server <- function(input, output, session) {
   # url <- "http://api.cepesp.io/api/consulta/tse"
 
   banco <- eventReactive(input$button, {
+    cat("Starting to download banco.\n")
     start <- Sys.time()
     withProgress(message="Por favor, espere...",
                  detail="Download dos dados",
@@ -301,6 +326,11 @@ server <- function(input, output, session) {
     partido <- stringr::str_remove_all(input$Party, " ")
     cargo <- as.numeric(input$cargo)
     candidato <- as.numeric(input$candidato)
+    
+    if(is.null(partidos_escolhas()) | is.null(candidatos_value())){
+      cat("Starting to download banco. NULL\n")
+      return(1)
+    }
   
     cat("Downloading main data (uf=", uf, "; partido=", partido, ";cargo=", cargo, ";candidato=",candidato,")\n", sep = "") 
     
@@ -319,13 +349,20 @@ server <- function(input, output, session) {
   })
   
   d <- reactive({
-    start <- Sys.time()
-    
     cat("Calculating 'd' value. \n")
+    
+    banco_use <- banco()
+
+    if(any(class(banco_use) == c("reactive"))){
+      cat("Calculating 'd' value. NULL\n")
+      return(NULL)
+    }
+    
+    start <- Sys.time()
     
     withProgress(message="Por favor, espere...",detail="Download dos dados", value=0.3,{
     
-    d <- data.table::as.data.table(banco())
+    d <- data.table::as.data.table(banco_use)
 
     if(dim(d)[1] != 0){
     
@@ -339,8 +376,6 @@ server <- function(input, output, session) {
     d[,Tot_Deputado := sum(QTDE_VOTOS), by=.(ANO_ELEICAO,UF,NUMERO_CANDIDATO)]
     d[,Mun_Vote_Share := (QTDE_VOTOS/Tot_Mun)*100]
     d[,Cand_Vote_Share := (QTDE_VOTOS/Tot_Deputado)*100]
-    
-    print(d)
     
     incProgress(amount = 0.7)
     
@@ -368,14 +403,20 @@ server <- function(input, output, session) {
     end_beginning <- round(difftime(end,start, units = "secs"), 2)
     cat("Calculating 'd' value. CHECK!!! (", end_beginning, "seconds)\n")
     return(d)
-    
     })
   })
   
   mun_state_contig <- reactive({
+    uf <- input$State
+    
+    ## Break
+    if(uf == ""){
+      return(NULL)
+    }
+    
     beginning <- Sys.time()
     names(mun)[which(names(mun)=="UF")] <- "UF_shape"
-    mun_state <- mun[mun$UF_shape == input$State,]
+    mun_state <- mun[mun$UF_shape == uf,]
     state_nb <- poly2nb(mun_state)
     if (any(card(state_nb)==0)){
       mun_state_contig <- mun_state[-which(card(state_nb)==0),]  
@@ -388,9 +429,14 @@ server <- function(input, output, session) {
   })
   
   dz3 <- reactive({
+
     beginning <- Sys.time()
     
     dz2 <- d()
+    
+    if(is.null(dz2)){
+      return(NULL)
+    }
     
     candidato <- isolate(input$candidato)
     
@@ -410,12 +456,18 @@ server <- function(input, output, session) {
   })
   
   state_nb2 <- reactive({
+    if(is.null(mun_state_contig())){
+      return(NULL)
+    }
     state_nb2 <- poly2nb(mun_state_contig()) #Necessary to remove 'islands' as causes problems
     return(state_nb2)
   })
   
   state_nb2listw <- reactive({
     beginning <- Sys.time()
+    if(is.null(state_nb2())){
+      return(NULL)
+    }
     state_nb2listw <- nb2listw(state_nb2(),zero.policy=TRUE)
     end <- Sys.time()
     cat("Time for identifying neightbours list: ",end-beginning,".\n")
@@ -428,7 +480,13 @@ server <- function(input, output, session) {
     ## Reactive events
     
     dz4 <- dz3()
+    
+    ## Break
+    if(is.null(dz4)){
+      return(NULL)
+    }
     state_nb2listw <- isolate(state_nb2listw())
+    
     #dz4 <- dz3
     
     lisa <- as.data.frame(localmoran(dz4$LQ,state_nb2listw))
@@ -449,34 +507,29 @@ server <- function(input, output, session) {
     dz5 <- dz4
   })
   
-  state_shp <- reactive({
-    state_shp <- unionSpatialPolygons(dz5(),IDs=dz5()@data[,"UF_shape"])
-  })
-  
   output$map <- renderLeaflet({
     leaflet() %>%
       addProviderTiles(providers$CartoDB.Positron)
   })
   
-  shape_estado <- reactive({
+  state_shp <- reactive({
     uf <- input$State
     if(uf == "")
       uf <- "br"
-    shape_estado <- readr::read_rds(paste0("data/shape_states/", uf,".rds"))
+    state_shp <- readr::read_rds(paste0("data/shape_states/", uf,".rds"))
   })
   
   observe({
     uf <- input$State
     
-    
-    geo <- as.numeric(st_bbox(shape_estado()))
+    geo <- as.numeric(st_bbox(state_shp()))
     
     ### Base Map ###
     
     leafletProxy("map") %>%
       clearShapes() %>%
       clearControls() %>% 
-      addPolygons(data = shape_estado(),
+      addPolygons(data = state_shp(),
                   fillOpacity  = 0,
                   weight       = 3,
                   color        = "black",
@@ -487,11 +540,17 @@ server <- function(input, output, session) {
   observe({
     dz5_use <- dz5()
     
+    print(dz5_use)
+    
+    if(is.null(dz5_use)){
+      return(NULL)
+    }
+    
     proxy <- leafletProxy("map")
     
     proxy %>% 
       clearShapes() %>% 
-      addPolygons(data  = shape_estado(),
+      addPolygons(data  = state_shp(),
                   color = "black",
                   fillColor = NULL,
                   fillOpacity = 0)
@@ -682,15 +741,21 @@ server <- function(input, output, session) {
   })
   
   output$Result <- renderUI({
-    str_Result <- paste0("<h3> Resultado: ",
+    if(is.null(dz3())){
+      output_error <- "Por favor, informe os parâmetros <b>estado</b>, <b>cargo</b>, <b>ano</b>, <b>partido</b> e <b>candidato</b> antes atualizar o mapa."
+      return(HTML(output_error))
+    }
+    
+    str_Result <- paste0("<b>Resultado: </b>: ",
                          unique(dz3()@data$DESC_SIT_TOT_TURNO[is.na(dz3()@data$DESC_SIT_TOT_TURNO)==FALSE]),
-                         " <br> Votos: ",unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE]),
-                         " <br> ",round((unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE])/unique(dz3()@data$Tot_State[is.na(dz3()@data$Tot_State)==FALSE]))*100,1),"% dos votos válidos </h3>")
+                         "<br><b>Votos: </b>",unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE]),
+                         "<br><b>Porcentagem dos votos válidos: </b>",round((unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE])/unique(dz3()@data$Tot_State[is.na(dz3()@data$Tot_State)==FALSE]))*100,1), "%")
     HTML(str_Result)
   })
   
   output$G_Index <- renderUI({
-    str_G_Index <- paste0("<h2> <b> Índice G: ",round(unique(dz3()@data$G_Index[is.na(dz3()@data$G_Index)==FALSE]),3),"<b> </h2>")
+    
+    str_G_Index <- paste0("<h4>Estatísticas Geoespaciais: </h4><b>Índice G:</b> ",round(unique(dz3()@data$G_Index[is.na(dz3()@data$G_Index)==FALSE]),3))
     HTML(str_G_Index)
   })
   
@@ -757,7 +822,7 @@ server <- function(input, output, session) {
   })
   
   output$moran <- renderUI({
-    str_moran <- paste0("<h2> <b> Moran's I: ",round(moran_I(),3),"<b> </h2>")
+    str_moran <- paste0("<b> Moran's I: </b>", round(moran_I(),3))
     HTML(str_moran)
   })
 
