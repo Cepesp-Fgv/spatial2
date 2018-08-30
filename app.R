@@ -773,18 +773,18 @@ server <- function(input, output, session) {
       xlab("G Index") + 
       ylab("Moran's I")
     })
-  
-  mouse <- reactive({
+
+    mouse <- reactive({
     if (is.null(input$plot_click)){
-      mouse_temp  <- d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NOME_URNA_CANDIDATO==input$candidato,][1,]
+      mouse_temp  <- d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_CANDIDATO==input$candidato,][1,]
     } else {
-      mouse_temp <- nearPoints(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,],input$plot_click,threshold=10,maxpoints=1)
+      mouse_temp <- nearPoints(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,],input$plot_click,threshold=20,maxpoints=1)
     }
     mouse <- mouse_temp
   })
 
   G_Quadrant <- reactive({
-    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(input$candidato,1,1)),"G_Index"]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"],na.rm=TRUE)){
+    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(mouse()$NUMERO_CANDIDATO,1,2)),"G_Index"][[1]]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"][[1]],na.rm=TRUE)){
       G_Quadrant_temp <-"above"
     } else {
       G_Quadrant_temp <- "below"
@@ -793,7 +793,7 @@ server <- function(input, output, session) {
   })
   
   G_desc <- reactive({
-    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(input$candidato,1,1)),"G_Index"]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"],na.rm=TRUE)){
+    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(mouse()$NUMERO_CANDIDATO,1,2)),"G_Index"][[1]]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"][[1]],na.rm=TRUE)){
       G_desc_temp <-"concentrated"
     } else {
       G_desc_temp <- "diffuse"
@@ -802,7 +802,7 @@ server <- function(input, output, session) {
   })
   
   Moran_Quadrant <- reactive({
-    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(input$candidato,1,1)),"MoranI"]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"MoranI"],na.rm=TRUE)){
+    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(mouse()$NUMERO_CANDIDATO,1,2)),"MoranI"][[1]]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"MoranI"][[1]],na.rm=TRUE)){
       Moran_Quadrant_temp <-"above"
     } else {
       Moran_Quadrant_temp <- "below"
@@ -811,7 +811,7 @@ server <- function(input, output, session) {
   })
   
   Moran_desc <- reactive({
-    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(input$candidato,1,1)),"MoranI"]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"MoranI"],na.rm=TRUE)){
+    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(mouse()$NUMERO_CANDIDATO,1,2)),"MoranI"][[1]]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"MoranI"][[1]],na.rm=TRUE)){
       Moran_desc_temp <-"contiguous"
     } else {
       Moran_desc_temp <- "dispersed"
@@ -821,7 +821,7 @@ server <- function(input, output, session) {
   })
   
   mouse_cand <- reactive({
-    mouse_cand <- d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"NOME_URNA_CANDIDATO"]
+    mouse_cand <- d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"NOME_URNA_CANDIDATO"][[1]]
   })
   
   classify_note_text <- reactive({
