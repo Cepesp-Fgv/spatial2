@@ -400,7 +400,6 @@ server <- function(input, output, session) {
     })
   })
   
-<<<<<<< HEAD
   mun_state_contig <- reactive({
     uf <- input$State
     
@@ -409,9 +408,6 @@ server <- function(input, output, session) {
       return(NULL)
     }
     
-=======
-  mun_state_contig <- eventReactive(input$button,{
->>>>>>> f79938414d08b8d914b1112f0214ee3d5553a336
     beginning <- Sys.time()
     names(mun)[which(names(mun)=="UF")] <- "UF_shape"
     mun_state <- mun[mun$UF_shape == uf,]
