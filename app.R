@@ -24,7 +24,7 @@ library(magrittr)
 if(!require(cepespR)) devtools::install_github("Cepesp-Fgv/cepesp-r")
 source("global.R")
 
-ui <- navbarPage("Spatial Voting",id="nav",theme = shinytheme("flatly"),
+ui <- navbarPage("CepespData",id="nav",theme = shinytheme("flatly"),
                  tabPanel("Mapa",div(class="outer",
                                     tags$head(
                                       includeCSS("styles.css")
@@ -304,9 +304,9 @@ server <- function(input, output, session) {
   # input <- tibble::tibble(cargo = 6,
   #                         Year = 2014,
   #                         turno = 1,
-  #                         Party = "PT",
-  #                         State  = "DF",
-  #                         candidato = "1331")
+  #                         Party = "PRB",
+  #                         State  = "CE",
+  #                         candidato = "1010")
   # url <- "http://api.cepesp.io/api/consulta/tse"
 
   banco <- eventReactive(input$button, {
@@ -400,6 +400,7 @@ server <- function(input, output, session) {
     })
   })
   
+<<<<<<< HEAD
   mun_state_contig <- reactive({
     uf <- input$State
     
@@ -408,6 +409,9 @@ server <- function(input, output, session) {
       return(NULL)
     }
     
+=======
+  mun_state_contig <- eventReactive(input$button,{
+>>>>>>> f79938414d08b8d914b1112f0214ee3d5553a336
     beginning <- Sys.time()
     names(mun)[which(names(mun)=="UF")] <- "UF_shape"
     mun_state <- mun[mun$UF_shape == uf,]
@@ -823,27 +827,27 @@ server <- function(input, output, session) {
   output$quadrant <- renderPlot({
     ggplot() + 
       geom_point(data=d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,],aes(x=G_Index,y=MoranI,size=Number_Votes,shape=Result),color="blue",alpha=0.2) + 
-      geom_point(data=d_uniq[d_uniq$NOME_URNA_CANDIDATO!=input$candidato & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==switch(input$Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),],aes(x=G_Index,y=MoranI,size=Number_Votes,shape=Result),color="red",alpha=0.8) + 
-      geom_point(data=d_uniq[d_uniq$NOME_URNA_CANDIDATO==input$candidato & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==switch(input$Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),],aes(x=G_Index,y=MoranI,size=Number_Votes,shape=Result),color="dark green",alpha=1) + 
+      geom_point(data=d_uniq[d_uniq$NUMERO_CANDIDATO!=input$candidato & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(input$candidato,1,2)),],aes(x=G_Index,y=MoranI,size=Number_Votes,shape=Result),color="red",alpha=0.8) + 
+      geom_point(data=d_uniq[d_uniq$NUMERO_CANDIDATO==input$candidato & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,],aes(x=G_Index,y=MoranI,size=Number_Votes,shape=Result),color="dark green",alpha=1) + 
       theme_classic() + 
-      geom_vline(xintercept=median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"],na.rm=TRUE),lty=2) +
-      geom_hline(yintercept=median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"MoranI"],na.rm=TRUE),lty=2) +
+      geom_vline(xintercept=median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"][[1]],na.rm=TRUE),lty=2) +
+      geom_hline(yintercept=median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"MoranI"][[1]],na.rm=TRUE),lty=2) +
       theme(axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),legend.text=element_text(size=12)) + 
       xlab("G Index") + 
       ylab("Moran's I")
     })
-  
-  mouse <- reactive({
+
+    mouse <- reactive({
     if (is.null(input$plot_click)){
-      mouse_temp  <- d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NOME_URNA_CANDIDATO==input$candidato,][1,]
+      mouse_temp  <- d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_CANDIDATO==input$candidato,][1,]
     } else {
-      mouse_temp <- nearPoints(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,],input$plot_click,threshold=10,maxpoints=1)
+      mouse_temp <- nearPoints(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,],input$plot_click,threshold=20,maxpoints=1)
     }
     mouse <- mouse_temp
   })
 
   G_Quadrant <- reactive({
-    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==switch(input$Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),"G_Index"]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"],na.rm=TRUE)){
+    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(mouse()$NUMERO_CANDIDATO,1,2)),"G_Index"][[1]]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"][[1]],na.rm=TRUE)){
       G_Quadrant_temp <-"above"
     } else {
       G_Quadrant_temp <- "below"
@@ -852,7 +856,7 @@ server <- function(input, output, session) {
   })
   
   G_desc <- reactive({
-    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==switch(input$Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),"G_Index"]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"],na.rm=TRUE)){
+    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(mouse()$NUMERO_CANDIDATO,1,2)),"G_Index"][[1]]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"][[1]],na.rm=TRUE)){
       G_desc_temp <-"concentrated"
     } else {
       G_desc_temp <- "diffuse"
@@ -861,7 +865,7 @@ server <- function(input, output, session) {
   })
   
   Moran_Quadrant <- reactive({
-    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==switch(input$Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),"MoranI"]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"MoranI"],na.rm=TRUE)){
+    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(mouse()$NUMERO_CANDIDATO,1,2)),"MoranI"][[1]]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"MoranI"][[1]],na.rm=TRUE)){
       Moran_Quadrant_temp <-"above"
     } else {
       Moran_Quadrant_temp <- "below"
@@ -870,7 +874,7 @@ server <- function(input, output, session) {
   })
   
   Moran_desc <- reactive({
-    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==switch(input$Party,"PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90),"MoranI"]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"MoranI"],na.rm=TRUE)){
+    if(d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(mouse()$NUMERO_CANDIDATO,1,2)),"MoranI"][[1]]>median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"MoranI"][[1]],na.rm=TRUE)){
       Moran_desc_temp <-"contiguous"
     } else {
       Moran_desc_temp <- "dispersed"
@@ -880,7 +884,7 @@ server <- function(input, output, session) {
   })
   
   mouse_cand <- reactive({
-    mouse_cand <- d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"NOME_URNA_CANDIDATO"]
+    mouse_cand <- d_uniq[d_uniq$NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"NOME_URNA_CANDIDATO"][[1]]
   })
   
   classify_note_text <- reactive({
