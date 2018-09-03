@@ -21,6 +21,7 @@ library(shinythemes)
 library(dplyr)
 library(DT)
 library(magrittr)
+library(shinyjs)
 if(!require(cepespR)) devtools::install_github("Cepesp-Fgv/cepesp-r")
 source("global.R")
 
@@ -32,14 +33,23 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                                     
                                     tags$style(type="text/css",
                                                ".shiny-output-error { visibility: hidden; }",
-                                               ".shiny-output-error:before { visibility: hidden; }"
-                                    ),
+                                               ".shiny-output-error:before { visibility: hidden; }",
+                                               "#controlPanel {background-color: rgba(255,255,255,0.8);}",
+                                               ".leaflet-top.leaflet-right .leaflet-control {
+      margin-right: 10px; margin-top: 250px;
+    }"),
                                     leafletOutput("map",width="100%",height="100%")),
+                          absolutePanel(
+                            top = "auto", left = "auto", right = 20, bottom = 20,
+                            width = "auto", height = "auto",
+                            actionButton("map_zoom_in", "+"),
+                            actionButton("map_zoom_out", "-")
+                          ),
                            bootstrapPage(absolutePanel(id = "note", class = "panel panel-default", fixed = TRUE,
                                                       draggable = TRUE, top = 60, left = "auto", right = 30, bottom = "auto",
-                                                      width = 330, height = "auto",
-                                                      HTML('<button data-toggle="collapse" data-target="#demo">Info</button>'),
-                                                      tags$div(id = 'demo',  class="collapse in",htmlOutput("Note"))
+                                                      width = 200, height = "auto",
+                                                      HTML('<button data-toggle="collapse" data-target="#demo">Indicadores</button>'),
+                                                      tags$div(id = 'demo',  class="collapse in",htmlOutput("Indicators"))
                           ))
                  ),
                  tabPanel("Gráficos",
@@ -72,9 +82,13 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                           column(width=4,h4("Top and Bottom 5 G Index in this State and Year"),dataTableOutput("Extremes")),
                           column(width=4,leafletOutput("map_selected_hi",width="500px",height="400px"))
                  ),
+                 tabPanel("Guia",
+                          column(width=4,""),
+                          column(width=6,h4("Detalhes"),htmlOutput("Note"))
+                 ),
                  absolutePanel(id = "controls", class = "panel panel-default", fixed = F,
-                               draggable = F, top = 120, left = 10, right = "auto", bottom = "auto",
-                               width = 330, height = "auto",
+                               draggable = F, top = 60, left = 10, right = "auto", bottom = "auto",
+                               width = 260, height = "auto",
                                fluidPage(h4("Resultados Eleitorais"),
                                          selectizeInput("State", 
                                                         label = NULL,
@@ -108,10 +122,6 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                                                                      "Medida QL"),
                                                       selected = 1),
                                actionButton("button", label = strong("Atualizar"), width = "95%"),
-                               HTML(paste0("<hr> </hr>")),
-                               htmlOutput("Result"),
-                               htmlOutput("G_Index"),
-                               htmlOutput("moran"),
                                HTML("</br></br>"))
                  )
 
@@ -502,7 +512,7 @@ server <- function(input, output, session) {
   })
   
   output$map <- renderLeaflet({
-    leaflet() %>%
+    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
       addProviderTiles(providers$CartoDB.Positron)
   })
   
@@ -606,11 +616,10 @@ server <- function(input, output, session) {
                                                           "Medida QL" = "LQ",
                                                           "1"         = "Cand_Vote_Share")]]),
                   popup        = popup_text) %>%
-      addLegend(position       = "bottomright",
-                title          = switch(input$Indicator,
+      addLegend(title          = switch(input$Indicator,
                                         "Medida QL" = "Medida QL",
-                                        "Proporção de Votos" = "% Votos no Município",
-                                        "1"                  = "% Votos do(a) Candidato(a)"),
+                                        "Proporção de Votos" = "% Votos no <br>Município",
+                                        "1"                  = "% Votos do(a)<br>Candidato(a)"),
                 pal            = pal,
                 values         = dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share",
                                                       "Medida QL"="LQ",
@@ -811,7 +820,7 @@ server <- function(input, output, session) {
   })
   
   output$Note <- renderUI({
-    note <- paste0("A <b>Percentagem de Voto no Município</b> é o percentual de votos válidos no município recebidos pelo candidato.<br> A <b>Medida QL</b> indica quantas vezes mais votos o candidate recebe no município em comparação com se eles recebessem apoio igual em todo o estado. Essa medida é diretamente proporcional à percentagem de votos, mas escala o indicador para que valores maiores que '1' indiquem os municípios em quais o candidato é particularmente dependente.<br> O <b>Índice G</b> mede o desvio de apoio do candidato em todo o estado de uma distribuição uniforme de apoio em proporção perfeita à população local. G = 0 indica uma taxa uniforme de conversão da população aos votos, e G = 1 indica concentração perfeita de apoio eleitoral em apenas um município.<br> O mapa destaca com <b>fronteiras verdes</b> os clusters de municípios onde votos são concentrados estatisticamente significativos..")
+    note <- paste0("<font size='3'> <b>Percentagem de Voto no Município</b> é o percentual de votos válidos no município recebidos pelo candidato.<br> A <b>Medida QL</b> indica quantas vezes mais votos o candidate recebe no município em comparação com se eles recebessem apoio igual em todo o estado. Essa medida é diretamente proporcional à percentagem de votos, mas escala o indicador para que valores maiores que '1' indiquem os municípios em quais o candidato é particularmente dependente.<br> O <b>Índice G</b> mede o desvio de apoio do candidato em todo o estado de uma distribuição uniforme de apoio em proporção perfeita à população local. G = 0 indica uma taxa uniforme de conversão da população aos votos, e G = 1 indica concentração perfeita de apoio eleitoral em apenas um município.<br> O mapa destaca com <b>fronteiras verdes</b> os clusters de municípios onde votos são concentrados estatisticamente significativos. </font>")
     HTML(note)
   })
   
@@ -1019,6 +1028,31 @@ server <- function(input, output, session) {
       clearBounds() %>% 
       addPolygons(data=state_shp(),fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=extreme_d(), layerId=extreme_d()@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(extreme_d()@data[,"LQ"]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=extreme_d()@data[,"LQ"],opacity=0.8) 
   })
+  
+  observeEvent(input$map_zoom_out ,{
+    leafletProxy("map") %>% 
+      setView(lat  = (input$map_bounds$north + input$map_bounds$south) / 2,
+              lng  = (input$map_bounds$east + input$map_bounds$west) / 2,
+              zoom = input$map_zoom - 1)
+  })
+  # Zoom control - zoom in
+  observeEvent(input$map_zoom_in ,{
+    leafletProxy("map") %>% 
+      setView(lat  = (input$map_bounds$north + input$map_bounds$south) / 2,
+              lng  = (input$map_bounds$east + input$map_bounds$west) / 2,
+              zoom = input$map_zoom + 1)
+  })
+
+  output$Indicators <- renderUI({
+      str_Result <- paste0("<b>Resultado: </b>: ",
+                         unique(dz3()@data$DESC_SIT_TOT_TURNO[is.na(dz3()@data$DESC_SIT_TOT_TURNO)==FALSE]),
+                         "<br><b>Votos: </b>",unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE]),
+                         "<br><b>Porcentagem dos votos válidos: </b>",round((unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE])/unique(dz3()@data$Tot_State[is.na(dz3()@data$Tot_State)==FALSE]))*100,1), "%")
+      str_G_Index <- paste0("<h4>Estatísticas Geoespaciais: </h4><b>Índice G:</b> ",round(unique(dz3()@data$G_Index[is.na(dz3()@data$G_Index)==FALSE]),3))
+      str_moran <- paste0("<b> Moran's I: </b>", round(moran_I(),3))
+      Indicators <- HTML(paste0(str_Result,str_G_Index,str_moran))
+  })
+    
 }
 
 # Run the application 
