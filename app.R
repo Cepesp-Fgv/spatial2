@@ -21,7 +21,6 @@ library(shinythemes)
 library(dplyr)
 library(DT)
 library(magrittr)
-library(shinyjs)
 if(!require(cepespR)) devtools::install_github("Cepesp-Fgv/cepesp-r")
 source("global.R")
 
