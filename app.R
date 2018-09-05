@@ -124,7 +124,7 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                                                       choices = list("Proporção de Votos do Candidato" = 1,
                                                                      "Proporção de Votos no Município" = "Proporção de Votos",
                                                                      "Medida QL"),
-                                                      selected = 2),
+                                                      selected = "Proporção de Votos"),
                                actionButton("button", label = strong("Atualizar"), width = "95%"),
                                HTML("</br></br>"))
                  )
@@ -1054,7 +1054,7 @@ server <- function(input, output, session) {
                          "<br><b>Porcentagem dos votos válidos: </b>",round((unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE])/unique(dz3()@data$Tot_State[is.na(dz3()@data$Tot_State)==FALSE]))*100,1), "%")
       str_G_Index <- paste0("<h4>Estatísticas Geoespaciais: </h4><b>Índice G:</b> ",round(unique(dz3()@data$G_Index[is.na(dz3()@data$G_Index)==FALSE]),3))
       str_moran <- paste0("<b> Moran's I: </b>", round(moran_I(),3))
-      Indicators <- HTML(paste0(str_Result,str_G_Index,str_moran))
+      Indicators <- HTML(paste0(str_Result,str_G_Index, "</br>",str_moran))
   })
  
   observeEvent(input$Info, {
