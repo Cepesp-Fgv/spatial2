@@ -21,6 +21,7 @@ library(shinythemes)
 library(dplyr)
 library(DT)
 library(magrittr)
+library(shinyalert)
 if(!require(cepespR)) devtools::install_github("Cepesp-Fgv/cepesp-r")
 source("global.R")
 
@@ -81,14 +82,18 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                           column(width=4,h4("Top and Bottom 5 G Index in this State and Year"),dataTableOutput("Extremes")),
                           column(width=4,leafletOutput("map_selected_hi",width="500px",height="400px"))
                  ),
-                 tabPanel("Guia",
-                          column(width=4,""),
-                          column(width=6,h4("Detalhes"),htmlOutput("Note"))
-                 ),
                  absolutePanel(id = "controls", class = "panel panel-default", fixed = F,
                                draggable = F, top = 60, left = 10, right = "auto", bottom = "auto",
                                width = 260, height = "auto",
-                               fluidPage(h4("Resultados Eleitorais"),
+                               fluidPage(useShinyalert(),
+                                         tags$head(
+                                           tags$style(HTML('#Info{background-color:#48C9B0}'))
+                                         ),
+                                         tags$head(
+                                           tags$style(HTML('#button{background-color:#28B463}'))
+                                         ),
+                                         actionButton("Info", "Informação", width = "95%"),
+                                         h4("Resultados Eleitorais"),
                                          selectizeInput("State", 
                                                         label = NULL,
                                                         choices = c("","AC","AM","AL","AP","BA","CE","ES","GO","MA","MS","MG","MT","PA",
@@ -119,7 +124,7 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                                                       choices = list("Proporção de Votos do Candidato" = 1,
                                                                      "Proporção de Votos no Município" = "Proporção de Votos",
                                                                      "Medida QL"),
-                                                      selected = 1),
+                                                      selected = 2),
                                actionButton("button", label = strong("Atualizar"), width = "95%"),
                                HTML("</br></br>"))
                  )
@@ -1051,7 +1056,32 @@ server <- function(input, output, session) {
       str_moran <- paste0("<b> Moran's I: </b>", round(moran_I(),3))
       Indicators <- HTML(paste0(str_Result,str_G_Index,str_moran))
   })
-    
+ 
+  observeEvent(input$Info, {
+  shinyalert(
+    title = "Informação",
+    text = "<div align='left'>
+<ul> 
+    <li> O <b>Percentagem de Voto no Município</b> é o percentual de votos válidos no município recebidos pelo candidato.</li> 
+    <li> A <b>Medida QL</b> indica quantas vezes mais votos o candidato recebe no município em comparação com se eles recebessem apoio igual em todo o estado. Essa medida é diretamente proporcional à percentagem de votos, mas escala o indicador para que valores maiores que '1' indiquem os municípios em quais o candidato é particularmente dependente.</li> 
+    <li> O <b>Índice G</b> mede o desvio de apoio do candidato em todo o estado de uma distribuição uniforme de apoio em proporção perfeita à população local. G = 0 indica uma taxa uniforme de conversão da população aos votos, e G = 1 indica concentração perfeita de apoio eleitoral em apenas um município.</li> 
+    <li> O mapa destaca com <b>fronteiras verdes</b> os clusters de municípios onde votos são concentrados estatisticamente significativos. </li> 
+    </ul> 
+    </div>",
+    closeOnEsc = TRUE,
+    closeOnClickOutside = FALSE,
+    html = TRUE,
+    type = "success",
+    showConfirmButton = TRUE,
+    showCancelButton = FALSE,
+    confirmButtonText = "OK",
+    confirmButtonCol = "#AEDEF4",
+    timer = 0,
+    imageUrl = "",
+    animation = TRUE
+  )
+  })
+     
 }
 
 # Run the application 
