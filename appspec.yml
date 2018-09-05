@@ -1,9 +1,12 @@
-version: 0.0
-os: linux
-files:
-  - source: /
+--- 
+files: 
+  - 
     destination: /srv/shiny-server/spatial2
-hooks:
-   AfterInstall:
-    - location: .scripts/clear_cache.sh
+    source: /
+hooks: 
+  AfterInstall: 
+    - 
+      location: .scripts/clear_cache.sh
       runas: root
+os: linux
+version: 0.0
