@@ -126,7 +126,8 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                                                                      "Medida QL"),
                                                       selected = "Proporção de Votos"),
                                actionButton("button", label = strong("Atualizar"), width = "95%"),
-                               downloadButton('map_down'),
+                               conditionalPanel('input.button > 0',
+                                                downloadButton('map_down', label = "Download Mapa")),
                                HTML("</br></br>"))
                  )
 
@@ -646,6 +647,9 @@ server <- function(input, output, session) {
       return(NULL)
     }
     
+    geo <- as.numeric(st_bbox(state_shp()))
+    
+    
     if (input$Indicator == "Medida QL"){
       pal <- colorBin(palette  = c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),
                       domain   = c(0,1000),
@@ -693,19 +697,16 @@ server <- function(input, output, session) {
                   stroke       = TRUE)
   })
   
-  output$map_down <- downloadHandler({
-    filename <-  paste0(Sys.Date(),
-                      "_customLeafletmap",
-                      ".pdf")
-    
-    content <- function(file){
-      
-    }
-      mapview::mapshot(x = map_reactive(),
-                       file = file,
-                       cliprect = "viewport", # the clipping rectangle matches the height & width from the viewing port
-                       selfcontained = FALSE) # when this was not specified, the function for produced a PDF of two pages: one of the leaflet map, the other a blank page.
-  })
+  output$map_down <- downloadHandler(filename =  paste0(Sys.Date(),
+                                                        "_customLeafletmap",
+                                                        ".pdf"),
+                                     content = function(file){
+                                       mapview::mapshot(x = map_reactive(),
+                                                        file = file,
+                                                        cliprect = "viewport", # the clipping rectangle matches the height & width from the viewing port
+                                                        selfcontained = FALSE)}) # when this was not specified, the function for produced a PDF of two pages: one of the leaflet map, the other a blank page.
+
+
     
 
   ### End ###
