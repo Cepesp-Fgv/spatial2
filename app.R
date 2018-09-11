@@ -1135,10 +1135,10 @@ server <- function(input, output, session) {
     title = "Informação",
     text = "<div align='left'>
 <ul> 
-    <li> O <b>Percentagem de Voto no Município</b> é o percentual de votos válidos no município recebidos pelo candidato.</li> 
-    <li> A <b>Medida QL</b> indica quantas vezes mais votos o candidato recebe no município em comparação com se eles recebessem apoio igual em todo o estado. Essa medida é diretamente proporcional à percentagem de votos, mas escala o indicador para que valores maiores que '1' indiquem os municípios em quais o candidato é particularmente dependente.</li> 
+    <li> A <b>Proporção de Votos no Município</b> é o percentual de votos válidos no município recebidos pelo candidato.</li> 
+    <li> A <b>Medida QL</b> indica quantas vezes mais votos o candidato recebeu no município em comparação com se ele tivesse recebido apoio igual em todo o estado. A medida QL é determinada pela razão entre duas proporções: a proporção dos votos obtidos pelo candidato no município com relação à votação total do candidato no estado, e a proporção do número de eleitores do município sobre o eleitorado total do estado. QLs próximos a um indicam que o candidato obteve no município a votação que seria esperada, caso seus votos fossem distribuídos acordo com a população de cada município. QLs maiores que um indicam votação superior à esperada e potenciais 'bases eleitorais' dos candidatos. </li> 
     <li> O <b>Índice G</b> mede o desvio de apoio do candidato em todo o estado de uma distribuição uniforme de apoio em proporção perfeita à população local. G = 0 indica uma taxa uniforme de conversão da população aos votos, e G = 1 indica concentração perfeita de apoio eleitoral em apenas um município.</li> 
-    <li> O mapa destaca com <b>fronteiras verdes</b> os clusters de municípios onde votos são concentrados estatisticamente significativos. </li> 
+    <li> As <b>fronteiras verdes</b> no mapa são os clusters de municípios onde os votos são estatisticamente concentrados. </li>
     </ul> 
     </div>",
     closeOnEsc = TRUE,
