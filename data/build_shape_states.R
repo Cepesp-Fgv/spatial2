@@ -2,19 +2,25 @@ rm(list = ls())
 
 library(tidyverse)
 library(sf)
+library(RCurl)
 
 # 1. Download Shape -------------------------------------------------------
 
 temp_file <- tempfile()
 
+temp_dir <- tempdir()
+
 url_use <- "ftp://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_municipais/municipio_2015/Brasil/BR/BR.zip"
 
 download.file(url_use, destfile = temp_file)
 
-temp_dir <- tempdir()
 unzip(temp_file, exdir = temp_dir)
 
 uf_shape <- sf::read_sf(paste0(temp_dir,"/BR/BRUFE250GC_SIR.shp"))
+
+uf_shape <- rmapshaper::ms_simplify(uf_shape)
+
+uf_shape <- rmapshaper::ms_filter_islands(uf_shape)
 
 ufs <- list("Acre"                 = "AC",
             "Alagoas"              = "AL",
@@ -62,3 +68,27 @@ for(i in seq_along(uf_shape$UF)){
 }
 
 length(list.files("data/shape_states/"))
+
+# 3. Shape Brasil ---------------------------------------------------------
+
+temp_file <- tempfile()
+
+temp_dir <- tempdir()
+
+url_use = "ftp://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_municipais/municipio_2015/Brasil/BR/br_unidades_da_federacao.zip"
+
+download.file(url_use, destfile = temp_file)
+
+unzip(temp_file, exdir = temp_dir)
+
+br_shape <- sf::read_sf(paste0(temp_dir,"/BRUFE250GC_SIR.shp"))
+
+br_shape <- rmapshaper::ms_simplify(br_shape)
+
+br_shape <- rmapshaper::ms_filter_islands(br_shape)
+
+readr::write_rds(br_shape, paste0("data/shape_states/br.rds"))
+
+
+
+
