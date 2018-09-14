@@ -22,10 +22,12 @@ library(dplyr)
 library(DT)
 library(magrittr)
 library(shinyalert)
+library(shinyBS)
+
 if(!require(cepespR)) devtools::install_github("Cepesp-Fgv/cepesp-r")
 source("global.R")
 
-ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
+ui <- navbarPage("CepespMapas",id="nav",theme = shinytheme("flatly"),
                  tabPanel("Mapa",div(class="outer",
                                     tags$head(
                                       includeCSS("styles.css")
@@ -40,22 +42,25 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
     }"),
                                     leafletOutput("map",width="100%",height="100%")),
                           absolutePanel(
-                            top = "auto", left = "auto", right = 20, bottom = 20,
+                            draggable=FALSE, top = "auto", left = "auto", right = 20, bottom = 20,
                             width = "auto", height = "auto",
                             actionButton("map_zoom_in", "+"),
                             actionButton("map_zoom_out", "-")
                           ),
                            bootstrapPage(absolutePanel(id = "note", class = "panel panel-default", fixed = TRUE,
-                                                      draggable = TRUE, top = 60, left = "auto", right = 30, bottom = "auto",
+                                                      draggable = FALSE, top = 60, left = "auto", right = 30, bottom = "auto",
                                                       width = 200, height = "auto",
                                                       HTML('<button data-toggle="collapse" data-target="#demo">Indicadores</button>'),
-                                                      tags$div(id = 'demo',  class="collapse in",htmlOutput("Indicators"))
+                                                      tags$div(id = 'demo',  class="collapse in",htmlOutput("Indicators1"),
+                                                               tipify(htmlOutput("Indicators2"),"O Índice G mede o desvio de apoio do candidato em todo o estado de uma distribuição uniforme de apoio em proporção perfeita à população local. G = 0 indica uma taxa uniforme de conversão da população aos votos, e G = 1 indica concentração perfeita de apoio eleitoral em apenas um município.","left"),
+                                                               tipify(htmlOutput("Indicators3"),"O Morans I mede a correlação espacial de votos. Valores maiores indicam que o apoio do candidato está concentrado em um pequeno número de clusters geográficos. Identificamos vizinhos municipais com base nos 6 municípios vizinhos mais próximos.","left"),
+                                                               tipify(htmlOutput("Indicators4"),"O número de clusters geográficos estatisticamente significativos de votação (fronteiras verdes no mapa) com base na medida da QL e LISA (Indicadores Locais de Autocorrelação Espacial)","left"))
                           ))
                  ),
                  tabPanel("Gráficos",
                           fluidRow(column(width=4,""),column(width=4,plotOutput("G_cand")),column(width=4,plotOutput("I_cand"))),
                           bootstrapPage(absolutePanel(id = "cuts", class = "panel panel-default", fixed = TRUE,
-                                                      draggable = TRUE, top = "auto", left = "auto", right = 30, bottom = 60,
+                                                      draggable = FALSE, top = "auto", left = "auto", right = 30, bottom = 60,
                                                       width = 700, height = "auto",
                                                       h4("Winning candidates tend to have more diffuse (low G) and contiguous (high I) support"),
                                                       radioButtons("Cut",
@@ -77,10 +82,14 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                           column(width=4,htmlOutput("Num_clusters"),h4("Cluster Summary"),dataTableOutput("Clusters_agg"),h4("Municipalities by Cluster"),dataTableOutput("Clusters")),
                           column(width=4,leafletOutput("map_clusters",width="500px",height="400px"))
                  ),
-                 tabPanel("Extremes",
+                 tabPanel("Extremos",
                           column(width=4,""),
                           column(width=4,h4("Top and Bottom 5 G Index in this State and Year"),dataTableOutput("Extremes")),
                           column(width=4,leafletOutput("map_selected_hi",width="500px",height="400px"))
+                 ),
+                 tabPanel("Sobre",
+                          column(width=4,""),
+                          column(width=8,h4("Sobre CepespMapas"),htmlOutput("Note"))
                  ),
                  absolutePanel(id = "controls", class = "panel panel-default", fixed = F,
                                draggable = F, top = 60, left = 10, right = "auto", bottom = "auto",
@@ -92,8 +101,7 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                                          tags$head(
                                            tags$style(HTML('#button{background-color:#28B463}'))
                                          ),
-                                         actionButton("Info", "Informação", width = "95%"),
-                                         h4("Resultados Eleitorais"),
+                                         h4("Opções:"),
                                          selectizeInput("State", 
                                                         label = NULL,
                                                         choices = c("","AC","AM","AL","AP","BA","CE","ES","GO","MA","MS","MG","MT","PA",
@@ -126,6 +134,13 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                                                                      "Medida QL"),
                                                       selected = 2),
                                actionButton("button", label = strong("Atualizar"), width = "95%"),
+                               bsTooltip("cargo", "Todas as eleições onde o distrito eleitoral é o estado estão disponíveis",
+                                         "right", options = list(container = "body")),
+                               bsTooltip("party_UI", "Escolha todos os partidos para pesquisar por nome do candidato na caixa abaixo",
+                                         "right", options = list(container = "body")),
+                               radioTooltip(id = "Indicator", choice = 1, title = "O percentual de votos no candidato em todo o estado recebidos em cada município.", placement = "right", trigger = "hover", options = list(container = "body")),
+                               radioTooltip(id = "Indicator", choice = "Proporção de Votos", title = "O percentual de votos válidos no município recebidos pelo candidato.", placement = "right", trigger = "hover", options = list(container = "body")),
+                               radioTooltip(id = "Indicator", choice = "Medida QL", title = "A Medida QL indica quantas vezes mais votos o candidato recebeu no município em comparação com se ele tivesse recebido apoio igual em todo o estado. A QL é determinada pela razão entre duas proporções: (i) a proporção dos votos obtidos pelo candidato no município com relação à votação total do candidato no estado, e (ii) o número de eleitores do município sobre o eleitorado total do estado. QLs maiores que um indicam votação superior à esperada e potenciais bases eleitorais dos candidatos.", placement = "right", trigger = "hover", options = list(container = "body")),
                                HTML("</br></br>"))
                  )
 
@@ -585,7 +600,7 @@ server <- function(input, output, session) {
                          "<strong>", dz5_use@data[,"QTDE_VOTOS"], "</strong>",
                          " votos (",
                          round((dz5_use@data[,"QTDE_VOTOS"] / dz5_use@data[,"Tot_Deputado"])*100,1),
-                         "% do total recebeido pelo candidato(a) no estado). </br>",
+                         "% do total recebido pelo candidato(a) no estado). </br>",
                          "</br> Votos váliados no município: ",
                          dz5_use@data[,"Tot_Mun"],
                          " (",
@@ -600,7 +615,7 @@ server <- function(input, output, session) {
                               dz5_use@data[dz5_use@data$category=="High-High","QTDE_VOTOS"],
                               " votos (",
                               round((dz5_use@data[dz5_use@data$category=="High-High","QTDE_VOTOS"]/dz5_use@data[dz5_use@data$category=="High-High","Tot_Deputado"])*100,1),
-                              "% do total recebeido pelo candidato(a) no estado)",
+                              "% do total recebido pelo candidato(a) no estado)",
                               "</br> </br> Votos válidos no município: ",
                               dz5_use@data[dz5_use@data$category=="High-High","Tot_Mun"],
                               " (",
@@ -824,7 +839,7 @@ server <- function(input, output, session) {
   })
   
   output$Note <- renderUI({
-    note <- paste0("<font size='3'> <b>Percentagem de Voto no Município</b> é o percentual de votos válidos no município recebidos pelo candidato.<br> A <b>Medida QL</b> indica quantas vezes mais votos o candidate recebe no município em comparação com se eles recebessem apoio igual em todo o estado. Essa medida é diretamente proporcional à percentagem de votos, mas escala o indicador para que valores maiores que '1' indiquem os municípios em quais o candidato é particularmente dependente.<br> O <b>Índice G</b> mede o desvio de apoio do candidato em todo o estado de uma distribuição uniforme de apoio em proporção perfeita à população local. G = 0 indica uma taxa uniforme de conversão da população aos votos, e G = 1 indica concentração perfeita de apoio eleitoral em apenas um município.<br> O mapa destaca com <b>fronteiras verdes</b> os clusters de municípios onde votos são concentrados estatisticamente significativos. </font>")
+    note <- paste0("<font size='3'> As mapas eleitorais foram desenvolvidos utilizando os dados coletados e limpos pelo <a href='http://http://cepesp.io/'> CepespData </a>. Desenvolvido por Jonathan Phillips e Rafael de Castro Coelho Silva com apoio do equipe CEPESP. </font>")
     HTML(note)
   })
   
@@ -1047,25 +1062,37 @@ server <- function(input, output, session) {
               zoom = input$map_zoom + 1)
   })
 
-  output$Indicators <- renderUI({
-      str_Result <- paste0("<b>Resultado: </b>: ",
+  output$Indicators1 <- renderUI({
+    str_Result <- HTML(paste0("<b>Resultado: </b>: ",
                          unique(dz3()@data$DESC_SIT_TOT_TURNO[is.na(dz3()@data$DESC_SIT_TOT_TURNO)==FALSE]),
-                         "<br><b>Votos: </b>",unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE]),
-                         "<br><b>Porcentagem dos votos válidos: </b>",round((unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE])/unique(dz3()@data$Tot_State[is.na(dz3()@data$Tot_State)==FALSE]))*100,1), "%")
-      str_G_Index <- paste0("<h4>Estatísticas Geoespaciais: </h4><b>Índice G:</b> ",round(unique(dz3()@data$G_Index[is.na(dz3()@data$G_Index)==FALSE]),3))
-      str_moran <- paste0("<b> Moran's I: </b>", round(moran_I(),3))
-      Indicators <- HTML(paste0(str_Result,str_G_Index,str_moran))
+                         "<br><b>Votos válidos: </b>",format(unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE]),big.mark=" "),
+                         "<br><b>% dos votos: </b>",round((unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE])/unique(dz3()@data$Tot_State[is.na(dz3()@data$Tot_State)==FALSE]))*100,1), "%",
+                       "<h4>Estatísticas Geoespaciais: </h4>"))
   })
- 
+  
+  output$Indicators2 <- renderUI({
+    str_G_Index <- HTML(paste0("<b>Índice G:</b> ",round(unique(dz3()@data$G_Index[is.na(dz3()@data$G_Index)==FALSE]),3),"<br> </br>"))
+  })
+  
+  output$Indicators3 <- renderUI({
+    str_moran <- HTML(paste0("<b> Moran's I: </b>", round(moran_I(),3),"<br> </br>"))
+  })
+
+  output$Indicators4 <- renderUI({
+    str_moran <- HTML(paste0("<b> Número de Clusters: ",length(clusters_list()),"<b>"))
+  })
+  
+  Num_clusters <- 
+  
   observeEvent(input$Info, {
   shinyalert(
     title = "Informação",
     text = "<div align='left'>
 <ul> 
-    <li> O <b>Percentagem de Voto no Município</b> é o percentual de votos válidos no município recebidos pelo candidato.</li> 
-    <li> A <b>Medida QL</b> indica quantas vezes mais votos o candidato recebe no município em comparação com se eles recebessem apoio igual em todo o estado. Essa medida é diretamente proporcional à percentagem de votos, mas escala o indicador para que valores maiores que '1' indiquem os municípios em quais o candidato é particularmente dependente.</li> 
+    <li> A <b>Proporção de Votos no Município</b> é o percentual de votos válidos no município recebidos pelo candidato.</li> 
+    <li> A <b>Medida QL</b> indica quantas vezes mais votos o candidato recebeu no município em comparação com se ele tivesse recebido apoio igual em todo o estado. A medida QL de um candidato no município é determinada pela razão entre duas proporções. A primeira é a proporção dos votos obtidos pelo candidato no município com relação à votação total do candidato no estado. A segunda proporção é a do número de eleitores do município sobre o eleitorado total do estado. Essa medida é diretamente proporcional à porcentagem de votos, mas escala o indicador para que QLs próximos a um indicam que o candidato obteve no município a votação que seria esperada, caso seus votos fossem distribuídos acordo com a população de cada município. QLs menores que um indicam que o candidato obteve votação menor do que a esperada e QLs maiores que um indicam votação superior à esperada e potenciais 'bases eleitorais' dos candidatos. </li> 
     <li> O <b>Índice G</b> mede o desvio de apoio do candidato em todo o estado de uma distribuição uniforme de apoio em proporção perfeita à população local. G = 0 indica uma taxa uniforme de conversão da população aos votos, e G = 1 indica concentração perfeita de apoio eleitoral em apenas um município.</li> 
-    <li> O mapa destaca com <b>fronteiras verdes</b> os clusters de municípios onde votos são concentrados estatisticamente significativos. </li> 
+    <li> As <b>fronteiras verdes</b> no mapa são os clusters de municípios onde os votos são estatisticamente concentrados. </li>
     </ul> 
     </div>",
     closeOnEsc = TRUE,
