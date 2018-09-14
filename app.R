@@ -839,7 +839,7 @@ server <- function(input, output, session) {
   })
   
   output$Note <- renderUI({
-    note <- paste0("<font size='3'> As mapas eleitorais foram desenvolvidos utilizando os dados coletados e limpos pelo <a href='http://http://cepesp.io/'> CepespData </a>. Desenvolvido por Jonathan Phillips e Rafael de Castro Coelho Silva com apoio do equipe CEPESP. </font>")
+    note <- paste0("<font size='3'> As mapas eleitorais foram desenvolvidos utilizando os dados coletados e limpos pelo <a href='http://cepesp.io/'> CepespData </a>. Desenvolvido por Jonathan Phillips e Rafael de Castro Coelho Silva com apoio do equipe CEPESP. </font>")
     HTML(note)
   })
   
