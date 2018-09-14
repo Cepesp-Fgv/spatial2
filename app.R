@@ -69,7 +69,7 @@ ui <- navbarPage("CepespMapas",id="nav",theme = shinytheme("flatly"),
                                                                    selected = "All")
                  ))
                  ),
-                 tabPanel("Classify",
+                 tabPanel("Classificar",
                           column(width=4,""),
                           column(width=4,plotOutput("quadrant",click="plot_click",hover="plot_hover"),
                                  uiOutput("hover_info"),
@@ -132,7 +132,7 @@ ui <- navbarPage("CepespMapas",id="nav",theme = shinytheme("flatly"),
                                                       choices = list("Proporção de Votos do Candidato" = 1,
                                                                      "Proporção de Votos no Município" = "Proporção de Votos",
                                                                      "Medida QL"),
-                                                      selected = 2),
+                                                      selected = "Proporção de Votos"),
                                actionButton("button", label = strong("Atualizar"), width = "95%"),
                                bsTooltip("cargo", "Todas as eleições onde o distrito eleitoral é o estado estão disponíveis",
                                          "right", options = list(container = "body")),
@@ -141,6 +141,8 @@ ui <- navbarPage("CepespMapas",id="nav",theme = shinytheme("flatly"),
                                radioTooltip(id = "Indicator", choice = 1, title = "O percentual de votos no candidato em todo o estado recebidos em cada município.", placement = "right", trigger = "hover", options = list(container = "body")),
                                radioTooltip(id = "Indicator", choice = "Proporção de Votos", title = "O percentual de votos válidos no município recebidos pelo candidato.", placement = "right", trigger = "hover", options = list(container = "body")),
                                radioTooltip(id = "Indicator", choice = "Medida QL", title = "A Medida QL indica quantas vezes mais votos o candidato recebeu no município em comparação com se ele tivesse recebido apoio igual em todo o estado. A QL é determinada pela razão entre duas proporções: (i) a proporção dos votos obtidos pelo candidato no município com relação à votação total do candidato no estado, e (ii) o número de eleitores do município sobre o eleitorado total do estado. QLs maiores que um indicam votação superior à esperada e potenciais bases eleitorais dos candidatos.", placement = "right", trigger = "hover", options = list(container = "body")),
+                               conditionalPanel('input.button > 0',
+                                                downloadButton('map_down', label = "Download Mapa")),
                                HTML("</br></br>"))
                  )
 
@@ -563,8 +565,6 @@ server <- function(input, output, session) {
   observe({
     dz5_use <- dz5()
     
-    print(dz5_use)
-    
     if(is.null(dz5_use)){
       return(NULL)
     }
@@ -652,6 +652,79 @@ server <- function(input, output, session) {
                   stroke       = TRUE,
                   popup        = popup_text_hihi)
   })
+  
+  ### Map for Download ###
+  
+  map_reactive <- eventReactive(input$button, {
+    dz5_use <- dz5()
+    
+    if(is.null(dz5_use)){
+      return(NULL)
+    }
+    
+    geo <- as.numeric(st_bbox(state_shp()))
+    
+    
+    if (input$Indicator == "Medida QL"){
+      pal <- colorBin(palette  = c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),
+                      domain   = c(0,1000),
+                      bins     = c(0,0.01,1,5,10,50,1000),
+                      na.color = "white")
+    } else if(input$Indicator == "1") {
+      pal <- colorNumeric(palette  = c("white","red"),
+                          domain   = c(0,max(dz5_use@data[["Cand_Vote_Share"]],na.rm=TRUE)),
+                          na.color = "white")
+    } else {
+      pal <- colorNumeric(palette  = c("white","red"),
+                          domain   = c(0,max(dz5_use@data[["Mun_Vote_Share"]],na.rm=TRUE)),
+                          na.color = "white")
+    }
+    
+    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
+      addProviderTiles(providers$CartoDB.Positron) %>% 
+      addPolygons(data = state_shp(),
+                  fillOpacity  = 0,
+                  weight       = 3,
+                  color        = "black",
+                  fillColor    = NULL) %>% 
+      flyToBounds(geo[3], geo[4], geo[1], geo[2]) %>% 
+      addPolygons(data         = dz5_use,
+                  fillOpacity  = 0.8,
+                  weight       = 0.1,
+                  color        = "black",
+                  fillColor    = pal(dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share",
+                                                          "Medida QL" = "LQ",
+                                                          "1"         = "Cand_Vote_Share")]])) %>%
+      addLegend(title          = switch(input$Indicator,
+                                        "Medida QL" = "Medida QL",
+                                        "Proporção de Votos" = "% Votos no <br>Município",
+                                        "1"                  = "% Votos do(a)<br>Candidato(a)"),
+                pal            = pal,
+                values         = dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share",
+                                                      "Medida QL"="LQ",
+                                                      "1"         = "Cand_Vote_Share")]],
+                opacity        = 0.8,
+                labFormat      = labelFormat(suffix = "%"))  %>%
+      addPolygons(data         = dz5_use[dz5_use@data$category=="High-High",],
+                  fillOpacity  = 0,
+                  weight       = 2,
+                  color        = "green",
+                  stroke       = TRUE)
+  })
+  
+  output$map_down <- downloadHandler(filename =  paste0(Sys.Date(),
+                                                        "_customLeafletmap",
+                                                        ".pdf"),
+                                     content = function(file){
+                                       mapview::mapshot(x = map_reactive(),
+                                                        file = file,
+                                                        cliprect = "viewport", # the clipping rectangle matches the height & width from the viewing port
+                                                        selfcontained = FALSE)}) # when this was not specified, the function for produced a PDF of two pages: one of the leaflet map, the other a blank page.
+
+
+    
+
+  ### End ###
   
   clusters <- reactive({
     dz5_HH <- dz5()[dz5()$category=="High-High",]
@@ -1080,33 +1153,6 @@ server <- function(input, output, session) {
 
   output$Indicators4 <- renderUI({
     str_moran <- HTML(paste0("<b> Número de Clusters: ",length(clusters_list()),"<b>"))
-  })
-  
-  Num_clusters <- 
-  
-  observeEvent(input$Info, {
-  shinyalert(
-    title = "Informação",
-    text = "<div align='left'>
-<ul> 
-    <li> A <b>Proporção de Votos no Município</b> é o percentual de votos válidos no município recebidos pelo candidato.</li> 
-    <li> A <b>Medida QL</b> indica quantas vezes mais votos o candidato recebeu no município em comparação com se ele tivesse recebido apoio igual em todo o estado. A medida QL de um candidato no município é determinada pela razão entre duas proporções. A primeira é a proporção dos votos obtidos pelo candidato no município com relação à votação total do candidato no estado. A segunda proporção é a do número de eleitores do município sobre o eleitorado total do estado. Essa medida é diretamente proporcional à porcentagem de votos, mas escala o indicador para que QLs próximos a um indicam que o candidato obteve no município a votação que seria esperada, caso seus votos fossem distribuídos acordo com a população de cada município. QLs menores que um indicam que o candidato obteve votação menor do que a esperada e QLs maiores que um indicam votação superior à esperada e potenciais 'bases eleitorais' dos candidatos. </li> 
-    <li> O <b>Índice G</b> mede o desvio de apoio do candidato em todo o estado de uma distribuição uniforme de apoio em proporção perfeita à população local. G = 0 indica uma taxa uniforme de conversão da população aos votos, e G = 1 indica concentração perfeita de apoio eleitoral em apenas um município.</li> 
-    <li> As <b>fronteiras verdes</b> no mapa são os clusters de municípios onde os votos são estatisticamente concentrados. </li>
-    </ul> 
-    </div>",
-    closeOnEsc = TRUE,
-    closeOnClickOutside = FALSE,
-    html = TRUE,
-    type = "success",
-    showConfirmButton = TRUE,
-    showCancelButton = FALSE,
-    confirmButtonText = "OK",
-    confirmButtonCol = "#AEDEF4",
-    timer = 0,
-    imageUrl = "",
-    animation = TRUE
-  )
   })
      
 }
