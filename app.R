@@ -96,7 +96,7 @@ ui <- navbarPage("CepespMapas",id="nav",theme = shinytheme("flatly"),
                                width = 260, height = "auto",
                                fluidPage(useShinyalert(),
                                          tags$head(
-                                           tags$style(HTML('#Info{background-color:#48C9B0}'))
+                                           tags$style(HTML('#map_down{background-color:#48C9B0}'))
                                          ),
                                          tags$head(
                                            tags$style(HTML('#button{background-color:#28B463}'))
@@ -142,7 +142,7 @@ ui <- navbarPage("CepespMapas",id="nav",theme = shinytheme("flatly"),
                                radioTooltip(id = "Indicator", choice = "Proporção de Votos", title = "O percentual de votos válidos no município recebidos pelo candidato.", placement = "right", trigger = "hover", options = list(container = "body")),
                                radioTooltip(id = "Indicator", choice = "Medida QL", title = "A Medida QL indica quantas vezes mais votos o candidato recebeu no município em comparação com se ele tivesse recebido apoio igual em todo o estado. A QL é determinada pela razão entre duas proporções: (i) a proporção dos votos obtidos pelo candidato no município com relação à votação total do candidato no estado, e (ii) o número de eleitores do município sobre o eleitorado total do estado. QLs maiores que um indicam votação superior à esperada e potenciais bases eleitorais dos candidatos.", placement = "right", trigger = "hover", options = list(container = "body")),
                                conditionalPanel('input.button > 0',
-                                                downloadButton('map_down', label = "Download Mapa")),
+                                                downloadButton('map_down', label = "Download Mapa"), width="95%"),
                                HTML("</br></br>"))
                  )
 
@@ -721,8 +721,6 @@ server <- function(input, output, session) {
                                                         cliprect = "viewport", # the clipping rectangle matches the height & width from the viewing port
                                                         selfcontained = FALSE)}) # when this was not specified, the function for produced a PDF of two pages: one of the leaflet map, the other a blank page.
 
-
-    
 
   ### End ###
   
