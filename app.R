@@ -58,7 +58,7 @@ ui <- navbarPage("CepespMapas",id="nav",theme = shinytheme("flatly"),
                           ))
                  ),
                  tabPanel("Gráficos",
-                          fluidRow(column(width=4,""),column(width=4,plotOutput("G_cand")),column(width=4,plotOutput("I_cand"))),
+                          fluidRow(column(width=4,""),column(width=4,plotOutput("QL_dist")),column(width=4,plotOutput("I_cand"))),
                           bootstrapPage(absolutePanel(id = "cuts", class = "panel panel-default", fixed = TRUE,
                                                       draggable = FALSE, top = "auto", left = "auto", right = 30, bottom = 60,
                                                       width = 700, height = "auto",
@@ -909,6 +909,16 @@ server <- function(input, output, session) {
             legend.text=element_text(size=12))
   })
   
+  output$QL_dist <- renderPlot({
+    ggplot() + geom_density(data=as.data.frame(d()),aes(x=LQ), color=NA, fill="#2ca25f", alpha=0.5, na.rm=T) +
+      geom_vline(xintercept=1,lty=2) +
+      xlim(0,2) +
+      xlab("QL") + 
+      theme_classic() + 
+      ylab("Density") +
+      theme(axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),legend.text=element_text(size=))
+  })
+  
   output$Note <- renderUI({
     note <- paste0("<font size='3'> As mapas eleitorais foram desenvolvidos utilizando os dados coletados e limpos pelo <a href='http://cepesp.io/'> CepespData </a>. Desenvolvido por Jonathan Phillips e Rafael de Castro Coelho Silva com apoio do equipe CEPESP. </font>")
     HTML(note)
@@ -921,16 +931,16 @@ server <- function(input, output, session) {
 
   output$quadrant <- renderPlot({
     ggplot() + 
-      geom_point(data=d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,],aes(x=G_Index,y=MoranI,size=Number_Votes,shape=Result),color="blue",alpha=0.2) + 
-      geom_point(data=d_uniq[d_uniq$NUMERO_CANDIDATO!=input$candidato & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(input$candidato,1,2)),],aes(x=G_Index,y=MoranI,size=Number_Votes,shape=Result),color="red",alpha=0.8) + 
-      geom_point(data=d_uniq[d_uniq$NUMERO_CANDIDATO==input$candidato & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,],aes(x=G_Index,y=MoranI,size=Number_Votes,shape=Result),color="dark green",alpha=1) + 
+      geom_point(data=d_stats[d_stats$CODIGO_CARGO==input$cargo & d_stats$ANO_ELEICAO==input$Year & d_stats$UF==input$State,],aes(x=G_Index,y=Moran_I,size=Tot_Deputado),color="blue",alpha=0.2) + 
+      geom_point(data=d_stats[d_stats$CODIGO_CARGO==input$cargo & d_stats$NUMERO_CANDIDATO!=input$candidato & d_stats$ANO_ELEICAO==input$Year & d_stats$UF==input$State & as.numeric(substr(d_stats$NUMERO_CANDIDATO,1,2))==as.numeric(substr(input$candidato,1,2)),],aes(x=G_Index,y=Moran_I,size=Tot_Deputado),color="red",alpha=0.8) + 
+      geom_point(data=d_stats[d_stats$CODIGO_CARGO==input$cargo & d_stats$NUMERO_CANDIDATO==input$candidato & d_stats$ANO_ELEICAO==input$Year & d_stats$UF==input$State,],aes(x=G_Index,y=Moran_I,size=Tot_Deputado),color="dark green",alpha=1) + 
       theme_classic() + 
-      geom_vline(xintercept=median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"][[1]],na.rm=TRUE),lty=2) +
-      geom_hline(yintercept=median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"MoranI"][[1]],na.rm=TRUE),lty=2) +
+      geom_vline(xintercept=median(d_stats[d_stats$CODIGO_CARGO==input$cargo & d_stats$ANO_ELEICAO==input$Year & d_stats$UF==input$State,"G_Index"][[1]],na.rm=TRUE),lty=2) +
+      geom_hline(yintercept=median(d_stats[d_stats$CODIGO_CARGO==input$cargo & d_stats$ANO_ELEICAO==input$Year & d_stats$UF==input$State,"Moran_I"][[1]],na.rm=TRUE),lty=2) +
       theme(axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),legend.text=element_text(size=12)) + 
       xlab("G Index") + 
       ylab("Moran's I")
-    })
+  })
 
     mouse <- reactive({
     if (is.null(input$plot_click)){
