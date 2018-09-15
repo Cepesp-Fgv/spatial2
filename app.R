@@ -58,7 +58,7 @@ ui <- navbarPage("CepespMapas",id="nav",theme = shinytheme("flatly"),
                           ))
                  ),
                  tabPanel("Gráficos",
-                          fluidRow(column(width=4,""),column(width=4,plotOutput("QL_dist")),column(width=4,plotOutput("I_cand"))),
+                          fluidRow(column(width=4,""),column(width=4,plotOutput("QL_dist")),column(width=4,plotOutput("G_cand", height="200px"),plotOutput("I_cand", height="200px"))),
                           bootstrapPage(absolutePanel(id = "cuts", class = "panel panel-default", fixed = TRUE,
                                                       draggable = FALSE, top = "auto", left = "auto", right = 30, bottom = 60,
                                                       width = 700, height = "auto",
@@ -71,11 +71,10 @@ ui <- navbarPage("CepespMapas",id="nav",theme = shinytheme("flatly"),
                  ),
                  tabPanel("Classificar",
                           column(width=4,""),
-                          column(width=4,plotOutput("quadrant",click="plot_click",hover="plot_hover"),
+                          column(width=8,plotOutput("quadrant",click="plot_click",hover="plot_hover"),
                                  uiOutput("hover_info"),
                                  htmlOutput("Classify_Note"),
-                                 htmlOutput("Classify_Note2")),
-                          column(width=4,leafletOutput("map_selected",width="500px",height="400px"))
+                                 htmlOutput("Classify_Note2"))
                  ),
                  tabPanel("Clusters",
                           column(width=4,""),
@@ -874,22 +873,22 @@ server <- function(input, output, session) {
       scale_x_log10()
   })
 
-  d_uniq_cut <- reactive({
+  d_stats_cut <- reactive({
     if (input$Cut=="All"){
-      d_uniq_cut <- d_uniq
+      d_stats_cut <- d_stats
     } else if (input$Cut=="Selected Year") {
-      d_uniq_cut <- d_uniq[d_uniq$anoEleicao==input$Year,]
+      d_stats_cut <- d_stats[d_stats$ANO_ELEICAO==input$Year,]
     } else if (input$Cut=="Selected State") {
-      d_uniq_cut <- d_uniq[d_uniq$sigla_UF==input$State,]
+      d_stats_cut <- d_stats[d_stats$UF==input$State,]
     } else if (input$Cut=="Selected Party") {
-      d_uniq_cut <- d_uniq[d_uniq$NUMERO_PARTIDO==sigla_partidos[input$Party],]
+      d_stats_cut <- d_stats[as.numeric(substr(d_stats$NUMERO_CANDIDATO,1,2))==input$Party,]
     }
-    d_uniq_cut
+    d_stats_cut
   })
   
   output$G_cand <- renderPlot({
     ##Check categories for winner here
-    ggplot() + geom_density(data=d_uniq_cut(),aes(x=G_Index,fill=Result),colour=NA,alpha=0.5) +
+    ggplot() + geom_density(data=d_stats_cut(),aes(x=G_Index),colour=NA,fill="light blue", alpha=0.5) +
       xlab("G Index") + 
       theme_classic() + 
       ylab("Density") +
@@ -899,7 +898,7 @@ server <- function(input, output, session) {
   
   output$I_cand <- renderPlot({
     ggplot() +
-      geom_density(data=d_uniq_cut(),aes(x=MoranI,fill=Result),colour=NA,alpha=0.5) +
+      geom_density(data=d_stats_cut(),aes(x=Moran_I),colour=NA,fill="light blue",alpha=0.5) +
       xlab("Moran's I") +
       ylab("Density") +
       theme_classic() +
@@ -1008,19 +1007,6 @@ server <- function(input, output, session) {
     Classify_Note2 <- HTML(classify_note_text_2())
   })
   
-  dy3 <- reactive({
-    dy2 <- d()[NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO]
-    #dy2 <- d[NUMERO_CANDIDATO==mouse$NUMERO_CANDIDATO]
-    dy3_temp <- merge(mun_state_contig(),dy2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE)
-    #dy3_temp <- merge(mun_state_contig,dy2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE)
-    dy3 <- dy3_temp
-  })
-  
-  output$map_selected <- renderLeaflet({
-    pal <- colorBin(palette=c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),domain=c(0,1000), bins=c(1000,50,10,5,1,0.01,0), na.color="white")
-    popup_text <- paste0(dy3()@data[,"NOME"],"<br> Valid Votes: ",dy3()@data[,"Tot_Mun"]," (",round((dy3()@data[,"Tot_Mun"]/dy3()@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dy3()@data[,"NOME_URNA_CANDIDATO"]," received ",dy3()@data[,"QTDE_VOTOS"]," votes (",round((dy3()@data[,"QTDE_VOTOS"]/dy3()@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> Medida QL: ",round(dy3()@data[,"LQ"],3))
-    leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp(),fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dy3(), layerId=dy3()@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dy3()@data[,"LQ"]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=dy3()@data[,"LQ"],opacity=0.8) 
-  })
   
   output$hover_info <- renderUI({
     hover <- input$plot_hover
