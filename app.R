@@ -441,12 +441,12 @@ server <- function(input, output, session) {
     beginning <- Sys.time()
     names(mun)[which(names(mun)=="UF")] <- "UF_shape"
     mun_state <- mun[mun$UF_shape == uf,]
-    state_nb <- poly2nb(mun_state)
-    if (any(card(state_nb)==0)){
-      mun_state_contig <- mun_state[-which(card(state_nb)==0),]  
-    } else {
+ #   state_nb <- poly2nb(mun_state)
+#    if (any(card(state_nb)==0)){
+#      mun_state_contig <- mun_state[-which(card(state_nb)==0),]  
+#    } else {
       mun_state_contig <- mun_state
-    }
+#    }
     end <- Sys.time()
     cat("Time for trimming shapefile to state and first screening for neighbours:",end-beginning,".\n")
     return(mun_state_contig)
@@ -483,7 +483,8 @@ server <- function(input, output, session) {
     if(is.null(mun_state_contig())){
       return(NULL)
     }
-    state_nb2 <- poly2nb(mun_state_contig()) #Necessary to remove 'islands' as causes problems
+    state_nb2 <- knn2nb(knearneigh(coordinates(mun_state_contig()), k = 6))
+    #state_nb2 <- poly2nb(mun_state_contig()) #Necessary to remove 'islands' as causes problems
     return(state_nb2)
   })
   
