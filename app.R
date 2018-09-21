@@ -22,10 +22,12 @@ library(dplyr)
 library(DT)
 library(magrittr)
 library(shinyalert)
+library(shinyBS)
+
 if(!require(cepespR)) devtools::install_github("Cepesp-Fgv/cepesp-r")
 source("global.R")
 
-ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
+ui <- navbarPage("CepespMapas",id="nav",theme = shinytheme("flatly"),
                  tabPanel("Mapa",div(class="outer",
                                     tags$head(
                                       includeCSS("styles.css")
@@ -40,22 +42,25 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
     }"),
                                     leafletOutput("map",width="100%",height="100%")),
                           absolutePanel(
-                            top = "auto", left = "auto", right = 20, bottom = 20,
+                            draggable=FALSE, top = "auto", left = "auto", right = 20, bottom = 20,
                             width = "auto", height = "auto",
                             actionButton("map_zoom_in", "+"),
                             actionButton("map_zoom_out", "-")
                           ),
                            bootstrapPage(absolutePanel(id = "note", class = "panel panel-default", fixed = TRUE,
-                                                      draggable = TRUE, top = 60, left = "auto", right = 30, bottom = "auto",
+                                                      draggable = FALSE, top = 60, left = "auto", right = 30, bottom = "auto",
                                                       width = 200, height = "auto",
                                                       HTML('<button data-toggle="collapse" data-target="#demo">Indicadores</button>'),
-                                                      tags$div(id = 'demo',  class="collapse in",htmlOutput("Indicators"))
+                                                      tags$div(id = 'demo',  class="collapse in",htmlOutput("Indicators1"),
+                                                               tipify(htmlOutput("Indicators2"),"O Índice G mede o desvio de apoio do candidato em todo o estado de uma distribuição uniforme de apoio em proporção perfeita à população local. G = 0 indica uma taxa uniforme de conversão da população aos votos, e G = 1 indica concentração perfeita de apoio eleitoral em apenas um município.","left"),
+                                                               tipify(htmlOutput("Indicators3"),"O Morans I mede a correlação espacial de votos. Valores maiores indicam que o apoio do candidato está concentrado em um pequeno número de clusters geográficos. Identificamos vizinhos municipais com base nos 6 municípios vizinhos mais próximos.","left"),
+                                                               tipify(htmlOutput("Indicators4"),"O número de clusters geográficos estatisticamente significativos de votação (fronteiras verdes no mapa) com base na medida da QL e LISA (Indicadores Locais de Autocorrelação Espacial)","left"))
                           ))
                  ),
                  tabPanel("Gráficos",
-                          fluidRow(column(width=4,""),column(width=4,plotOutput("G_cand")),column(width=4,plotOutput("I_cand"))),
+                          fluidRow(column(width=4,""),column(width=4,plotOutput("QL_dist")),column(width=4,plotOutput("G_cand", height="200px"),plotOutput("I_cand", height="200px"))),
                           bootstrapPage(absolutePanel(id = "cuts", class = "panel panel-default", fixed = TRUE,
-                                                      draggable = TRUE, top = "auto", left = "auto", right = 30, bottom = 60,
+                                                      draggable = FALSE, top = "auto", left = "auto", right = 30, bottom = 60,
                                                       width = 700, height = "auto",
                                                       h4("Winning candidates tend to have more diffuse (low G) and contiguous (high I) support"),
                                                       radioButtons("Cut",
@@ -66,11 +71,10 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                  ),
                  tabPanel("Classificar",
                           column(width=4,""),
-                          column(width=4,plotOutput("quadrant",click="plot_click",hover="plot_hover"),
+                          column(width=8,plotOutput("quadrant",click="plot_click",hover="plot_hover"),
                                  uiOutput("hover_info"),
                                  htmlOutput("Classify_Note"),
-                                 htmlOutput("Classify_Note2")),
-                          column(width=4,leafletOutput("map_selected",width="500px",height="400px"))
+                                 htmlOutput("Classify_Note2"))
                  ),
                  tabPanel("Clusters",
                           column(width=4,""),
@@ -82,18 +86,21 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                           column(width=4,h4("Top and Bottom 5 G Index in this State and Year"),dataTableOutput("Extremes")),
                           column(width=4,leafletOutput("map_selected_hi",width="500px",height="400px"))
                  ),
+                 tabPanel("Sobre",
+                          column(width=4,""),
+                          column(width=8,h4("Sobre CepespMapas"),htmlOutput("Note"))
+                 ),
                  absolutePanel(id = "controls", class = "panel panel-default", fixed = F,
                                draggable = F, top = 60, left = 10, right = "auto", bottom = "auto",
                                width = 260, height = "auto",
                                fluidPage(useShinyalert(),
                                          tags$head(
-                                           tags$style(HTML('#Info{background-color:#48C9B0}'))
+                                           tags$style(HTML('#map_down{background-color:#48C9B0}'))
                                          ),
                                          tags$head(
                                            tags$style(HTML('#button{background-color:#28B463}'))
                                          ),
-                                         actionButton("Info", "Informação", width = "95%"),
-                                         h4("Resultados Eleitorais"),
+                                         h4("Opções:"),
                                          selectizeInput("State", 
                                                         label = NULL,
                                                         choices = c("","AC","AM","AL","AP","BA","CE","ES","GO","MA","MS","MG","MT","PA",
@@ -126,6 +133,15 @@ ui <- navbarPage("Mapas Eleitorais",id="nav",theme = shinytheme("flatly"),
                                                                      "Medida QL"),
                                                       selected = "Proporção de Votos"),
                                actionButton("button", label = strong("Atualizar"), width = "95%"),
+                               bsTooltip("cargo", "Todas as eleições onde o distrito eleitoral é o estado estão disponíveis",
+                                         "right", options = list(container = "body")),
+                               bsTooltip("party_UI", "Escolha todos os partidos para pesquisar por nome do candidato na caixa abaixo",
+                                         "right", options = list(container = "body")),
+                               radioTooltip(id = "Indicator", choice = 1, title = "O percentual de votos no candidato em todo o estado recebidos em cada município.", placement = "right", trigger = "hover", options = list(container = "body")),
+                               radioTooltip(id = "Indicator", choice = "Proporção de Votos", title = "O percentual de votos válidos no município recebidos pelo candidato.", placement = "right", trigger = "hover", options = list(container = "body")),
+                               radioTooltip(id = "Indicator", choice = "Medida QL", title = "A Medida QL indica quantas vezes mais votos o candidato recebeu no município em comparação com se ele tivesse recebido apoio igual em todo o estado. A QL é determinada pela razão entre duas proporções: (i) a proporção dos votos obtidos pelo candidato no município com relação à votação total do candidato no estado, e (ii) o número de eleitores do município sobre o eleitorado total do estado. QLs maiores que um indicam votação superior à esperada e potenciais bases eleitorais dos candidatos.", placement = "right", trigger = "hover", options = list(container = "body")),
+                               conditionalPanel('input.button > 0',
+                                                downloadButton('map_down', label = "Download Mapa"), width="95%"),
                                HTML("</br></br>"))
                  )
 
@@ -425,12 +441,12 @@ server <- function(input, output, session) {
     beginning <- Sys.time()
     names(mun)[which(names(mun)=="UF")] <- "UF_shape"
     mun_state <- mun[mun$UF_shape == uf,]
-    state_nb <- poly2nb(mun_state)
-    if (any(card(state_nb)==0)){
-      mun_state_contig <- mun_state[-which(card(state_nb)==0),]  
-    } else {
+ #   state_nb <- poly2nb(mun_state)
+#    if (any(card(state_nb)==0)){
+#      mun_state_contig <- mun_state[-which(card(state_nb)==0),]  
+#    } else {
       mun_state_contig <- mun_state
-    }
+#    }
     end <- Sys.time()
     cat("Time for trimming shapefile to state and first screening for neighbours:",end-beginning,".\n")
     return(mun_state_contig)
@@ -467,7 +483,8 @@ server <- function(input, output, session) {
     if(is.null(mun_state_contig())){
       return(NULL)
     }
-    state_nb2 <- poly2nb(mun_state_contig()) #Necessary to remove 'islands' as causes problems
+    state_nb2 <- knn2nb(knearneigh(coordinates(mun_state_contig()), k = 6))
+    #state_nb2 <- poly2nb(mun_state_contig()) #Necessary to remove 'islands' as causes problems
     return(state_nb2)
   })
   
@@ -548,8 +565,6 @@ server <- function(input, output, session) {
   observe({
     dz5_use <- dz5()
     
-    print(dz5_use)
-    
     if(is.null(dz5_use)){
       return(NULL)
     }
@@ -585,7 +600,7 @@ server <- function(input, output, session) {
                          "<strong>", dz5_use@data[,"QTDE_VOTOS"], "</strong>",
                          " votos (",
                          round((dz5_use@data[,"QTDE_VOTOS"] / dz5_use@data[,"Tot_Deputado"])*100,1),
-                         "% do total recebeido pelo candidato(a) no estado). </br>",
+                         "% do total recebido pelo candidato(a) no estado). </br>",
                          "</br> Votos váliados no município: ",
                          dz5_use@data[,"Tot_Mun"],
                          " (",
@@ -600,7 +615,7 @@ server <- function(input, output, session) {
                               dz5_use@data[dz5_use@data$category=="High-High","QTDE_VOTOS"],
                               " votos (",
                               round((dz5_use@data[dz5_use@data$category=="High-High","QTDE_VOTOS"]/dz5_use@data[dz5_use@data$category=="High-High","Tot_Deputado"])*100,1),
-                              "% do total recebeido pelo candidato(a) no estado)",
+                              "% do total recebido pelo candidato(a) no estado)",
                               "</br> </br> Votos válidos no município: ",
                               dz5_use@data[dz5_use@data$category=="High-High","Tot_Mun"],
                               " (",
@@ -637,6 +652,77 @@ server <- function(input, output, session) {
                   stroke       = TRUE,
                   popup        = popup_text_hihi)
   })
+  
+  ### Map for Download ###
+  
+  map_reactive <- eventReactive(input$button, {
+    dz5_use <- dz5()
+    
+    if(is.null(dz5_use)){
+      return(NULL)
+    }
+    
+    geo <- as.numeric(st_bbox(state_shp()))
+    
+    
+    if (input$Indicator == "Medida QL"){
+      pal <- colorBin(palette  = c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),
+                      domain   = c(0,1000),
+                      bins     = c(0,0.01,1,5,10,50,1000),
+                      na.color = "white")
+    } else if(input$Indicator == "1") {
+      pal <- colorNumeric(palette  = c("white","red"),
+                          domain   = c(0,max(dz5_use@data[["Cand_Vote_Share"]],na.rm=TRUE)),
+                          na.color = "white")
+    } else {
+      pal <- colorNumeric(palette  = c("white","red"),
+                          domain   = c(0,max(dz5_use@data[["Mun_Vote_Share"]],na.rm=TRUE)),
+                          na.color = "white")
+    }
+    
+    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
+      addProviderTiles(providers$CartoDB.Positron) %>% 
+      addPolygons(data = state_shp(),
+                  fillOpacity  = 0,
+                  weight       = 3,
+                  color        = "black",
+                  fillColor    = NULL) %>% 
+      flyToBounds(geo[3], geo[4], geo[1], geo[2]) %>% 
+      addPolygons(data         = dz5_use,
+                  fillOpacity  = 0.8,
+                  weight       = 0.1,
+                  color        = "black",
+                  fillColor    = pal(dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share",
+                                                          "Medida QL" = "LQ",
+                                                          "1"         = "Cand_Vote_Share")]])) %>%
+      addLegend(title          = switch(input$Indicator,
+                                        "Medida QL" = "Medida QL",
+                                        "Proporção de Votos" = "% Votos no <br>Município",
+                                        "1"                  = "% Votos do(a)<br>Candidato(a)"),
+                pal            = pal,
+                values         = dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share",
+                                                      "Medida QL"="LQ",
+                                                      "1"         = "Cand_Vote_Share")]],
+                opacity        = 0.8,
+                labFormat      = labelFormat(suffix = "%"))  %>%
+      addPolygons(data         = dz5_use[dz5_use@data$category=="High-High",],
+                  fillOpacity  = 0,
+                  weight       = 2,
+                  color        = "green",
+                  stroke       = TRUE)
+  })
+  
+  output$map_down <- downloadHandler(filename =  paste0(Sys.Date(),
+                                                        "_customLeafletmap",
+                                                        ".pdf"),
+                                     content = function(file){
+                                       mapview::mapshot(x = map_reactive(),
+                                                        file = file,
+                                                        cliprect = "viewport", # the clipping rectangle matches the height & width from the viewing port
+                                                        selfcontained = FALSE)}) # when this was not specified, the function for produced a PDF of two pages: one of the leaflet map, the other a blank page.
+
+
+  ### End ###
   
   clusters <- reactive({
     dz5_HH <- dz5()[dz5()$category=="High-High",]
@@ -788,22 +874,22 @@ server <- function(input, output, session) {
       scale_x_log10()
   })
 
-  d_uniq_cut <- reactive({
+  d_stats_cut <- reactive({
     if (input$Cut=="All"){
-      d_uniq_cut <- d_uniq
+      d_stats_cut <- d_stats
     } else if (input$Cut=="Selected Year") {
-      d_uniq_cut <- d_uniq[d_uniq$anoEleicao==input$Year,]
+      d_stats_cut <- d_stats[d_stats$ANO_ELEICAO==input$Year,]
     } else if (input$Cut=="Selected State") {
-      d_uniq_cut <- d_uniq[d_uniq$sigla_UF==input$State,]
+      d_stats_cut <- d_stats[d_stats$UF==input$State,]
     } else if (input$Cut=="Selected Party") {
-      d_uniq_cut <- d_uniq[d_uniq$NUMERO_PARTIDO==sigla_partidos[input$Party],]
+      d_stats_cut <- d_stats[as.numeric(substr(d_stats$NUMERO_CANDIDATO,1,2))==input$Party,]
     }
-    d_uniq_cut
+    d_stats_cut
   })
   
   output$G_cand <- renderPlot({
     ##Check categories for winner here
-    ggplot() + geom_density(data=d_uniq_cut(),aes(x=G_Index,fill=Result),colour=NA,alpha=0.5) +
+    ggplot() + geom_density(data=d_stats_cut(),aes(x=G_Index),colour=NA,fill="light blue", alpha=0.5) +
       xlab("G Index") + 
       theme_classic() + 
       ylab("Density") +
@@ -813,7 +899,7 @@ server <- function(input, output, session) {
   
   output$I_cand <- renderPlot({
     ggplot() +
-      geom_density(data=d_uniq_cut(),aes(x=MoranI,fill=Result),colour=NA,alpha=0.5) +
+      geom_density(data=d_stats_cut(),aes(x=Moran_I),colour=NA,fill="light blue",alpha=0.5) +
       xlab("Moran's I") +
       ylab("Density") +
       theme_classic() +
@@ -823,8 +909,18 @@ server <- function(input, output, session) {
             legend.text=element_text(size=12))
   })
   
+  output$QL_dist <- renderPlot({
+    ggplot() + geom_density(data=as.data.frame(d()),aes(x=LQ), color=NA, fill="#2ca25f", alpha=0.5, na.rm=T) +
+      geom_vline(xintercept=1,lty=2) +
+      xlim(0,2) +
+      xlab("QL") + 
+      theme_classic() + 
+      ylab("Density") +
+      theme(axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),legend.text=element_text(size=))
+  })
+  
   output$Note <- renderUI({
-    note <- paste0("<font size='3'> <b>Percentagem de Voto no Município</b> é o percentual de votos válidos no município recebidos pelo candidato.<br> A <b>Medida QL</b> indica quantas vezes mais votos o candidate recebe no município em comparação com se eles recebessem apoio igual em todo o estado. Essa medida é diretamente proporcional à percentagem de votos, mas escala o indicador para que valores maiores que '1' indiquem os municípios em quais o candidato é particularmente dependente.<br> O <b>Índice G</b> mede o desvio de apoio do candidato em todo o estado de uma distribuição uniforme de apoio em proporção perfeita à população local. G = 0 indica uma taxa uniforme de conversão da população aos votos, e G = 1 indica concentração perfeita de apoio eleitoral em apenas um município.<br> O mapa destaca com <b>fronteiras verdes</b> os clusters de municípios onde votos são concentrados estatisticamente significativos. </font>")
+    note <- paste0("<font size='3'> As mapas eleitorais foram desenvolvidos utilizando os dados coletados e limpos pelo <a href='http://cepesp.io/'> CepespData </a>. Desenvolvido por Jonathan Phillips e Rafael de Castro Coelho Silva com apoio do equipe CEPESP. </font>")
     HTML(note)
   })
   
@@ -835,16 +931,16 @@ server <- function(input, output, session) {
 
   output$quadrant <- renderPlot({
     ggplot() + 
-      geom_point(data=d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,],aes(x=G_Index,y=MoranI,size=Number_Votes,shape=Result),color="blue",alpha=0.2) + 
-      geom_point(data=d_uniq[d_uniq$NUMERO_CANDIDATO!=input$candidato & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State & d_uniq$NUMERO_PARTIDO==as.numeric(substr(input$candidato,1,2)),],aes(x=G_Index,y=MoranI,size=Number_Votes,shape=Result),color="red",alpha=0.8) + 
-      geom_point(data=d_uniq[d_uniq$NUMERO_CANDIDATO==input$candidato & d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,],aes(x=G_Index,y=MoranI,size=Number_Votes,shape=Result),color="dark green",alpha=1) + 
+      geom_point(data=d_stats[d_stats$CODIGO_CARGO==input$cargo & d_stats$ANO_ELEICAO==input$Year & d_stats$UF==input$State,],aes(x=G_Index,y=Moran_I,size=Tot_Deputado),color="blue",alpha=0.2) + 
+      geom_point(data=d_stats[d_stats$CODIGO_CARGO==input$cargo & d_stats$NUMERO_CANDIDATO!=input$candidato & d_stats$ANO_ELEICAO==input$Year & d_stats$UF==input$State & as.numeric(substr(d_stats$NUMERO_CANDIDATO,1,2))==as.numeric(substr(input$candidato,1,2)),],aes(x=G_Index,y=Moran_I,size=Tot_Deputado),color="red",alpha=0.8) + 
+      geom_point(data=d_stats[d_stats$CODIGO_CARGO==input$cargo & d_stats$NUMERO_CANDIDATO==input$candidato & d_stats$ANO_ELEICAO==input$Year & d_stats$UF==input$State,],aes(x=G_Index,y=Moran_I,size=Tot_Deputado),color="dark green",alpha=1) + 
       theme_classic() + 
-      geom_vline(xintercept=median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"G_Index"][[1]],na.rm=TRUE),lty=2) +
-      geom_hline(yintercept=median(d_uniq[d_uniq$anoEleicao==input$Year & d_uniq$sigla_UF==input$State,"MoranI"][[1]],na.rm=TRUE),lty=2) +
+      geom_vline(xintercept=median(d_stats[d_stats$CODIGO_CARGO==input$cargo & d_stats$ANO_ELEICAO==input$Year & d_stats$UF==input$State,"G_Index"][[1]],na.rm=TRUE),lty=2) +
+      geom_hline(yintercept=median(d_stats[d_stats$CODIGO_CARGO==input$cargo & d_stats$ANO_ELEICAO==input$Year & d_stats$UF==input$State,"Moran_I"][[1]],na.rm=TRUE),lty=2) +
       theme(axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),legend.text=element_text(size=12)) + 
       xlab("G Index") + 
       ylab("Moran's I")
-    })
+  })
 
     mouse <- reactive({
     if (is.null(input$plot_click)){
@@ -912,19 +1008,6 @@ server <- function(input, output, session) {
     Classify_Note2 <- HTML(classify_note_text_2())
   })
   
-  dy3 <- reactive({
-    dy2 <- d()[NUMERO_CANDIDATO==mouse()$NUMERO_CANDIDATO]
-    #dy2 <- d[NUMERO_CANDIDATO==mouse$NUMERO_CANDIDATO]
-    dy3_temp <- merge(mun_state_contig(),dy2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE)
-    #dy3_temp <- merge(mun_state_contig,dy2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE)
-    dy3 <- dy3_temp
-  })
-  
-  output$map_selected <- renderLeaflet({
-    pal <- colorBin(palette=c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),domain=c(0,1000), bins=c(1000,50,10,5,1,0.01,0), na.color="white")
-    popup_text <- paste0(dy3()@data[,"NOME"],"<br> Valid Votes: ",dy3()@data[,"Tot_Mun"]," (",round((dy3()@data[,"Tot_Mun"]/dy3()@data[,"Tot_State"])*100,1),"% of State Total)","<br>",dy3()@data[,"NOME_URNA_CANDIDATO"]," received ",dy3()@data[,"QTDE_VOTOS"]," votes (",round((dy3()@data[,"QTDE_VOTOS"]/dy3()@data[,"Tot_Deputado"])*100,1),"% of their Statewide Total)","<br> Medida QL: ",round(dy3()@data[,"LQ"],3))
-    leaflet() %>% addProviderTiles("CartoDB.Positron") %>% clearBounds() %>% addPolygons(data=state_shp(),fillOpacity=0,weight=3,color="black",fillColor=NULL) %>% addPolygons(data=dy3(), layerId=dy3()@data[,"LQ"],fillOpacity=0.8,weight=0.1,color=NA,fillColor=pal(dy3()@data[,"LQ"]), popup=popup_text) %>% addLegend(position="bottomleft", pal=pal,values=dy3()@data[,"LQ"],opacity=0.8) 
-  })
   
   output$hover_info <- renderUI({
     hover <- input$plot_hover
@@ -1047,39 +1130,24 @@ server <- function(input, output, session) {
               zoom = input$map_zoom + 1)
   })
 
-  output$Indicators <- renderUI({
-      str_Result <- paste0("<b>Resultado: </b>: ",
+  output$Indicators1 <- renderUI({
+    str_Result <- HTML(paste0("<b>Resultado: </b>: ",
                          unique(dz3()@data$DESC_SIT_TOT_TURNO[is.na(dz3()@data$DESC_SIT_TOT_TURNO)==FALSE]),
-                         "<br><b>Votos: </b>",unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE]),
-                         "<br><b>Porcentagem dos votos válidos: </b>",round((unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE])/unique(dz3()@data$Tot_State[is.na(dz3()@data$Tot_State)==FALSE]))*100,1), "%")
-      str_G_Index <- paste0("<h4>Estatísticas Geoespaciais: </h4><b>Índice G:</b> ",round(unique(dz3()@data$G_Index[is.na(dz3()@data$G_Index)==FALSE]),3))
-      str_moran <- paste0("<b> Moran's I: </b>", round(moran_I(),3))
-      Indicators <- HTML(paste0(str_Result,str_G_Index, "</br>",str_moran))
+                         "<br><b>Votos válidos: </b>",format(unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE]),big.mark=" "),
+                         "<br><b>% dos votos: </b>",round((unique(dz3()@data$Tot_Deputado[is.na(dz3()@data$Tot_Deputado)==FALSE])/unique(dz3()@data$Tot_State[is.na(dz3()@data$Tot_State)==FALSE]))*100,1), "%",
+                       "<h4>Estatísticas Geoespaciais: </h4>"))
   })
- 
-  observeEvent(input$Info, {
-  shinyalert(
-    title = "Informação",
-    text = "<div align='left'>
-<ul> 
-    <li> O <b>Percentagem de Voto no Município</b> é o percentual de votos válidos no município recebidos pelo candidato.</li> 
-    <li> A <b>Medida QL</b> indica quantas vezes mais votos o candidato recebe no município em comparação com se eles recebessem apoio igual em todo o estado. Essa medida é diretamente proporcional à percentagem de votos, mas escala o indicador para que valores maiores que '1' indiquem os municípios em quais o candidato é particularmente dependente.</li> 
-    <li> O <b>Índice G</b> mede o desvio de apoio do candidato em todo o estado de uma distribuição uniforme de apoio em proporção perfeita à população local. G = 0 indica uma taxa uniforme de conversão da população aos votos, e G = 1 indica concentração perfeita de apoio eleitoral em apenas um município.</li> 
-    <li> O mapa destaca com <b>fronteiras verdes</b> os clusters de municípios onde votos são concentrados estatisticamente significativos. </li> 
-    </ul> 
-    </div>",
-    closeOnEsc = TRUE,
-    closeOnClickOutside = FALSE,
-    html = TRUE,
-    type = "success",
-    showConfirmButton = TRUE,
-    showCancelButton = FALSE,
-    confirmButtonText = "OK",
-    confirmButtonCol = "#AEDEF4",
-    timer = 0,
-    imageUrl = "",
-    animation = TRUE
-  )
+  
+  output$Indicators2 <- renderUI({
+    str_G_Index <- HTML(paste0("<b>Índice G:</b> ",round(unique(dz3()@data$G_Index[is.na(dz3()@data$G_Index)==FALSE]),3),"<br> </br>"))
+  })
+  
+  output$Indicators3 <- renderUI({
+    str_moran <- HTML(paste0("<b> Moran's I: </b>", round(moran_I(),3),"<br> </br>"))
+  })
+
+  output$Indicators4 <- renderUI({
+    str_moran <- HTML(paste0("<b> Número de Clusters: ",length(clusters_list()),"<b>"))
   })
      
 }
