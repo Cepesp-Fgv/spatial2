@@ -658,17 +658,62 @@ server <- function(input, output, session) {
   map_reactive <- eventReactive(input$button, {
     dz5_use <- dz5()
     
+    if(is.null(dz5_use)){
+      return(NULL)
+    }
+    
+    geo <- as.numeric(st_bbox(state_shp()))
+    
+    
+    if (input$Indicator == "Medida QL"){
+      pal <- colorBin(palette  = c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),
+                      domain   = c(0,1000),
+                      bins     = c(0,0.01,1,5,10,50,1000),
+                      na.color = "white")
+    } else if(input$Indicator == "1") {
+      pal <- colorNumeric(palette  = c("white","red"),
+                          domain   = c(0,max(dz5_use@data[["Cand_Vote_Share"]],na.rm=TRUE)),
+                          na.color = "white")
+    } else {
+      pal <- colorNumeric(palette  = c("white","red"),
+                          domain   = c(0,max(dz5_use@data[["Mun_Vote_Share"]],na.rm=TRUE)),
+                          na.color = "white")
+    }
+    
     leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
       addProviderTiles(providers$CartoDB.Positron) %>% 
       addPolygons(data = state_shp(),
                   fillOpacity  = 0,
                   weight       = 3,
                   color        = "black",
-                  fillColor    = NULL) %>%  
+                  fillColor    = NULL) %>% 
+      flyToBounds(geo[3], geo[4], geo[1], geo[2]) %>% 
+      addPolygons(data         = dz5_use,
+                  fillOpacity  = 0.8,
+                  weight       = 0.1,
+                  color        = "black",
+                  fillColor    = pal(dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share",
+                                                          "Medida QL" = "LQ",
+                                                          "1"         = "Cand_Vote_Share")]])) %>%
+      addLegend(title          = switch(input$Indicator,
+                                        "Medida QL" = "Medida QL",
+                                        "Proporção de Votos" = "% Votos no <br>Município",
+                                        "1"                  = "% Votos do(a)<br>Candidato(a)"),
+                pal            = pal,
+                values         = dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share",
+                                                      "Medida QL"="LQ",
+                                                      "1"         = "Cand_Vote_Share")]],
+                opacity        = 0.8,
+                labFormat      = labelFormat(suffix = "%"))  %>%
+      addPolygons(data         = dz5_use[dz5_use@data$category=="High-High",],
+                  fillOpacity  = 0,
+                  weight       = 2,
+                  color        = "green",
+                  stroke       = TRUE)
   })
+
   
-  
-  output$dl <- downloadHandler(
+  output$map_down <- downloadHandler(
     filename = paste0( Sys.Date()
                        , "_customLeafletmap"
                        , ".pdf"
@@ -683,14 +728,6 @@ server <- function(input, output, session) {
     } # end of content() function
   )
   
-  #output$map_down <- downloadHandler(filename =  function() {"map_download.pdf")},
-  #                                   content = function(file){
-  #                                     mapview::mapshot(x = map_reactive(),
-  #                                                      file = file)})
-                                                        #cliprect = "viewport", # the clipping rectangle matches the height & width from the viewing port
-                                                        #selfcontained = FALSE)}) # when this was not specified, the function for produced a PDF of two pages: one of the leaflet map, the other a blank page.
-
-
   ### End ###
   
   clusters <- reactive({
