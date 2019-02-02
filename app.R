@@ -712,10 +712,26 @@ server <- function(input, output, session) {
                   stroke       = TRUE)
   })
   
-  output$map_down <- downloadHandler(filename =  function() {"map_download.pdf")},
-                                     content = function(file){
-                                       mapview::mapshot(x = map_reactive(),
-                                                        file = file)})
+  
+  output$dl <- downloadHandler(
+    filename = paste0( Sys.Date()
+                       , "_customLeafletmap"
+                       , ".pdf"
+    )
+
+    , content = function(file) {
+      mapshot( x = map_reactive()
+               , file = file
+               , cliprect = "viewport" # the clipping rectangle matches the height & width from the viewing port
+               , selfcontained = FALSE # when this was not specified, the function for produced a PDF of two pages: one of the leaflet map, the other a blank page.
+      )
+    } # end of content() function
+  )
+  
+  #output$map_down <- downloadHandler(filename =  function() {"map_download.pdf")},
+  #                                   content = function(file){
+  #                                     mapview::mapshot(x = map_reactive(),
+  #                                                      file = file)})
                                                         #cliprect = "viewport", # the clipping rectangle matches the height & width from the viewing port
                                                         #selfcontained = FALSE)}) # when this was not specified, the function for produced a PDF of two pages: one of the leaflet map, the other a blank page.
 
