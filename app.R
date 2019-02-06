@@ -23,6 +23,7 @@ library(DT)
 library(magrittr)
 library(shinyalert)
 library(shinyBS)
+library(mapview)
 
 if(!require(cepespR)) devtools::install_github("Cepesp-Fgv/cepesp-r")
 source("global.R")
