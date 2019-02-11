@@ -716,14 +716,13 @@ server <- function(input, output, session) {
   
   output$map_down <- downloadHandler(
     filename = paste0( Sys.Date()
-                       , "_customLeafletmap"
-                       , ".pdf"
+                       , "_CepespData_map"
+                       , ".png"
     )
 
     , content = function(file) {
       mapshot( x = map_reactive()
                , file = file
-               , cliprect = "viewport" # the clipping rectangle matches the height & width from the viewing port
                , selfcontained = FALSE # when this was not specified, the function for produced a PDF of two pages: one of the leaflet map, the other a blank page.
       )
     } # end of content() function
