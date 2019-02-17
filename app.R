@@ -715,10 +715,7 @@ server <- function(input, output, session) {
 
   
   output$map_down <- downloadHandler(
-    filename = paste0( Sys.Date()
-                       , "_CepespData_map"
-                       , ".png"
-    )
+    filename = paste0(paste("CepespData",input$Year, input$State, input$cargo, "turno", input$turno_value, input$Party, input$candidato, sep="_"), ".png")
 
     , content = function(file) {
       mapshot( x = map_reactive()
