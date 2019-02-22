@@ -675,9 +675,17 @@ server <- function(input, output, session) {
       pal <- colorNumeric(palette  = c("white","red"),
                           domain   = c(0,max(dz5_use@data[["Cand_Vote_Share"]],na.rm=TRUE)),
                           na.color = "white")
+      
+      pal <- colorBin(palette  = c("white","#fcbba1","#fc9272","#fb6a4a","#ef3b2c"),
+                          domain   = quantile(dz5_use@data[["Cand_Vote_Share"]],probs=c(0,0.2,0.4,0.6,0.8,1),na.rm=T),
+                          na.color = "white")
     } else {
       pal <- colorNumeric(palette  = c("white","red"),
                           domain   = c(0,max(dz5_use@data[["Mun_Vote_Share"]],na.rm=TRUE)),
+                          na.color = "white")
+      
+      pal <- colorBin(palette  = c("white","#fcbba1","#fc9272","#fb6a4a","#ef3b2c"),
+                          domain   = quantile(dz5_use@data[["Mun_Vote_Share"]],probs=c(0,0.2,0.4,0.6,0.8,1),na.rm=T),
                           na.color = "white")
     }
     
