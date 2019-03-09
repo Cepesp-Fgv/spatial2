@@ -5,7 +5,8 @@ library(sf)
 library(sp)
 library(spdep)
 
-#setwd("C:\\Users\\Jonny\\Google Drive\\Academic\\FGV-SP\\shiny\\New_apps_2018\\Rafael spatial2\\spatial2")
+#setwd("C:\\Users\\Jonny\\Google Drive\\Academic\\FGV-SP\\shiny\\New_apps_2018\\spatial2-2019")
+
 mun <- readRDS("data/mun_simple3.rds") %>% st_as_sf() %>% 
   group_by(UF,GEOCOD_CH) %>% 
   summarize() %>%
@@ -16,7 +17,7 @@ args <- list(position = c(3,5,6,7))
 
 votos_ls <- pmap(args, 
                       cepespR::get_votes,
-                      year = "1998,2002,2006,2010,2014",
+                      year = "1998,2002,2006,2010,2014,2018",
                       columns_list=list("ANO_ELEICAO",
                                         "NUM_TURNO",
                                         'UF',
@@ -89,12 +90,12 @@ votos_LQ <- votos_LQ %>% filter(!UF=="DF")
 
 #Then pmap the separated LQ data, the listw object, the length of the nb object and the Szero of the nb object. Repeating over states as necessary.
 
-votos_LQ$LQ_vector_length <- votos_LQ$LQ_vector %>% map(length)
-votos_LQ <- votos_LQ %>% mutate(Lengths_OK=LQ_vector_length==n)
-summary(votos_LQ$Lengths_OK)
+#votos_LQ$LQ_vector_length <- votos_LQ$LQ_vector %>% map(length)
+#votos_LQ <- votos_LQ %>% mutate(Lengths_OK=LQ_vector_length==n)
+#summary(votos_LQ$Lengths_OK)
 
-votos_LQ_problem <- votos_LQ %>% filter(is.na(Lengths_OK))
-votos_LQ_problem %>% select(ANO_ELEICAO,UF) %>% distinct()
+#votos_LQ_problem <- votos_LQ %>% filter(is.na(Lengths_OK))
+#votos_LQ_problem %>% select(ANO_ELEICAO,UF) %>% distinct()
 
 votos_LQ$Moran_I <- votos_LQ %>%
   dplyr::select(LQ_vector,listw,n,S0) %>%
@@ -104,11 +105,11 @@ votos_LQ$Moran_I <- votos_LQ %>%
   unlist()
 
 #Test comparisons:
-votos_LQ %>% filter(ANO_ELEICAO==2014 & CODIGO_CARGO==6 & NUM_TURNO==1 & NUMERO_CANDIDATO==1012 & UF=="AC") %>% select(-LQ,-LQ_vector)
+#votos_LQ %>% filter(ANO_ELEICAO==2014 & CODIGO_CARGO==6 & NUM_TURNO==1 & NUMERO_CANDIDATO==1012 & UF=="AC") %>% select(-LQ,-LQ_vector)
 
-votos_LQ %>% filter(ANO_ELEICAO==2014 & CODIGO_CARGO==6 & NUM_TURNO==1 & NUMERO_CANDIDATO==1314 & UF=="AC") %>% select(-LQ,-LQ_vector)
+#votos_LQ %>% filter(ANO_ELEICAO==2014 & CODIGO_CARGO==6 & NUM_TURNO==1 & NUMERO_CANDIDATO==1314 & UF=="AC") %>% select(-LQ,-LQ_vector)
 #similar but not exact, due to zeros and different neighbourhood matrix
 
 output <- votos_LQ %>% select(-LQ,-LQ_vector,-listw,-n,-S0)
 
-saveRDS(output,"spatial_data.rds")
+saveRDS(output,"data/spatial_data.rds")
