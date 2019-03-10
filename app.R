@@ -395,8 +395,8 @@ server <- function(input, output, session) {
     setkeyv(d,c('ANO_ELEICAO','COD_MUN_IBGE','NUMERO_CANDIDATO'))
 
     #### Aggregations
-    d <- merge(d,isolate(mun_totals()), by="COD_MUN_IBGE")
-    d <- merge(d,isolate(state_totals()), by="UF")
+    d <- merge(d,isolate(mun_totals()), by=c("COD_MUN_IBGE","NUM_TURNO"))
+    d <- merge(d,isolate(state_totals()), by=c("UF","NUM_TURNO"))
 
     d[,Tot_Deputado := sum(QTDE_VOTOS), by=.(ANO_ELEICAO,UF,NUMERO_CANDIDATO)]
     d[,Mun_Vote_Share := (QTDE_VOTOS/Tot_Mun)*100]
@@ -723,7 +723,19 @@ server <- function(input, output, session) {
 
   
   output$map_down <- downloadHandler(
-    filename = paste0(paste("CepespData",input$Year, input$State, input$cargo, "turno", input$turno_value, input$Party, input$candidato, sep="_"), ".png")
+    filename = paste0(paste("CepespData",
+                            input$Year, 
+                            input$State, 
+                            switch(input$cargo,3 = "Governador",
+                                               5 = "Senador",
+                                               6 = "Deputado Federal" ,
+                                               7 = "Deputado Estadual"), 
+                            "Turno", 
+                            input$turno_value, 
+                            input$Party, 
+                            unique(dz5()@data[,"NOME_URNA_CANDIDATO"]), 
+                            sep="_"),
+                      ".png")
 
     , content = function(file) {
       mapshot( x = map_reactive()
