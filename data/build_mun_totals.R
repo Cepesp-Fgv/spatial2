@@ -4,7 +4,7 @@ suppressWarnings(dir.create("data/mun_totals"))
 
 # 1. Download -------------------------------------------------------------
 
-anos <- seq(2002, 2002, by = 4)
+anos <- seq(1998, 2018, by = 4)
 cargos <- c(3,5,6,7)
 
 ufs <- list("Acre"                 = "AC",
