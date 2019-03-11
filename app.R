@@ -721,15 +721,11 @@ server <- function(input, output, session) {
                   stroke       = TRUE)
   })
 
-  
   output$map_down <- downloadHandler(
     filename = paste0(paste("CepespData",
                             input$Year, 
                             input$State, 
-                            switch(input$cargo,3 = "Governador",
-                                               5 = "Senador",
-                                               6 = "Deputado Federal" ,
-                                               7 = "Deputado Estadual"), 
+                            input$cargo,
                             "Turno", 
                             input$turno_value, 
                             input$Party, 
