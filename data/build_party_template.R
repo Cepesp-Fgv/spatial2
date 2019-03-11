@@ -38,8 +38,8 @@ template <- candidatos_df %>%
                                          'APTO')) %>% 
   mutate(RESULTADO = ifelse(DESC_SIT_TOT_TURNO %in% c('ELEITO',
                                                       'ELEITO POR QP',
-                                                      'ELEITO POR MÉDIA',
-                                                      'MÉDIA'),
+                                                      'ELEITO POR MEDIA',
+                                                      'MEDIA'),
                             1,
                             2)) %>% 
   group_by(ANO_ELEICAO, NUM_TURNO, SIGLA_UF, CODIGO_CARGO, SIGLA_PARTIDO, RESULTADO) %>% 
@@ -51,4 +51,4 @@ for(i in seq_along(template$LISTA_NUMERO)){
   names(template$LISTA_NUMERO[[i]]) <- template$LISTA_NOMES[[i]]
 }
 
-write_rds(template, "C:/Users/Jonny/Google Drive/Academic/FGV-SP/shiny/New_apps_2018/spatial2-2019/data/party_template.rds")
+write_rds(template, "C:/Users/Jonny/Google Drive/Academic/FGV-SP/shiny/New_apps_2018/March 2019/spatial2/data/party_template.rds")
