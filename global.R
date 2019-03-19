@@ -1,15 +1,20 @@
 url <- "http://cepesp.io/api/consulta/tse"
 
-d_uniq <- suppressWarnings(suppressMessages(readr::read_csv("data/d_uniq_all_new_aug.csv", locale = readr::locale(encoding = "ISO-8859-1"))))
-d_stats <- suppressWarnings(suppressMessages(readRDS("data/spatial_data.rds")))
+#d_uniq <- suppressWarnings(suppressMessages(readr::read_csv("data/d_uniq_all_new_aug.csv", locale = readr::locale(encoding = "ISO-8859-1"))))
+d_stats <- suppressWarnings(suppressMessages(readRDS("data/spatial_data.rds"))) 
+
+d_stats <- d_stats %>%
+  mutate(Party_vote=ifelse(nchar(NUMERO_CANDIDATO)==2,1,0)) %>%
+  filter(Party_vote!=1)
+
 mun <- readRDS("data/mun_simple3.rds")
 
-d_uniq$winner <- "Loser"
-d_uniq[d_uniq[,"DESC_SIT_TOT_TURNO"] %in% c("ELEITO","ELEITO POR MÉDIA","ELEITO POR QP"),"winner"] <- "Winner"
-colnames(d_uniq)[colnames(d_uniq)=="ANO_ELEICAO"] <- "anoEleicao"
-colnames(d_uniq)[colnames(d_uniq)=="UF"] <- "sigla_UF"
-colnames(d_uniq)[colnames(d_uniq)=="V2"] <- "Number_Votes"
-colnames(d_uniq)[colnames(d_uniq)=="winner"] <- "Result"
+#d_uniq$winner <- "Loser"
+#d_uniq[d_uniq[,"DESC_SIT_TOT_TURNO"] %in% c("ELEITO","ELEITO POR MÉDIA","ELEITO POR QP"),"winner"] <- "Winner"
+#colnames(d_uniq)[colnames(d_uniq)=="ANO_ELEICAO"] <- "anoEleicao"
+#colnames(d_uniq)[colnames(d_uniq)=="UF"] <- "sigla_UF"
+#colnames(d_uniq)[colnames(d_uniq)=="V2"] <- "Number_Votes"
+#colnames(d_uniq)[colnames(d_uniq)=="winner"] <- "Result"
 
 party_template <- readr::read_rds("data/party_template.rds") %>% 
   ungroup()
