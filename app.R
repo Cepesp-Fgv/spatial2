@@ -38,8 +38,14 @@ library(tidyr)
 if(!require(cepespR)) devtools::install_github("Cepesp-Fgv/cepesp-r")
 source("global.R")
 
-ui <- navbarPage("CepespMapas",id="nav",theme = shinytheme("flatly"),
-                 tabPanel("Mapa",div(class="outer",
+ui <- fluidPage(tags$head(
+  tags$style(HTML(".navbar .navbar-nav {float: left}
+          .navbar .navbar-header {float: right}"))),
+  navbarPage(
+    tags$div(class = "header", checked = NA,
+             tags$a(href = "www.cepesp.io/cepesp-data", "Ir para CepespData")),
+    id="nav",theme = shinytheme("flatly"),
+    tabPanel("Mapa",div(class="outer",
                                     tags$head(
                                       includeCSS("styles.css")
                                     ),
@@ -105,6 +111,7 @@ ui <- navbarPage("CepespMapas",id="nav",theme = shinytheme("flatly"),
                           column(width=3,""),
                           column(width=8,h4("Sobre CepespMapas"),htmlOutput("Note"))
                  ),
+                 
                  absolutePanel(id = "controls", class = "panel panel-default", fixed = F,
                                draggable = F, top = 60, left = 10, right = "auto", bottom = "auto",
                                width = 260, height = "auto",
@@ -158,7 +165,7 @@ ui <- navbarPage("CepespMapas",id="nav",theme = shinytheme("flatly"),
                                conditionalPanel('input.button > 0',
                                                 downloadButton('map_down', label = "Download"), width="95%"),
                                HTML("</br></br>"))
-                 )
+                 ))
 
 server <- function(input, output, session) {
 
