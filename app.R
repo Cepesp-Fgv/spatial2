@@ -43,7 +43,7 @@ ui <- fluidPage(tags$head(
           .navbar .navbar-header {float: right}"))),
   navbarPage(
     tags$div(class = "header", checked = NA,
-             tags$a(href = "www.cepesp.io/cepesp-data", "Ir para CepespData")),
+             tags$a(href = "http://www.cepesp.io/cepesp-data", "Ir para CepespData")),
     id="nav",theme = shinytheme("flatly"),
     tabPanel("Mapa",div(class="outer",
                                     tags$head(
