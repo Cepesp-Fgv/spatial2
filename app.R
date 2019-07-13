@@ -27,13 +27,13 @@ library(mapview)
 library(tidyr)
 
 #input <- c()
-#input$State <- "CE"
-#input$Year <- 2018
+#input$State <- "SP"
+#input$Year <- 1998
 #input$cargo <- 6
-#input$candidato <- 
+#input$candidato <- 45
 #turno_use <- turno <- 1
 #partido <- input$Party <- "PSDB"
-#input$candidato <- 4580
+#input$candidato <- 45
 
 if(!require(cepespR)) devtools::install_github("Cepesp-Fgv/cepesp-r")
 source("global.R")
@@ -436,7 +436,7 @@ server <- function(input, output, session) {
     d[,LQ := (QTDE_VOTOS/Tot_Deputado)/(Tot_Mun/Tot_State),by=.(ANO_ELEICAO,UF,NUMERO_CANDIDATO)] #Correct?
     
     #Remove NULO line from selectable candidates, though is included in calculations of total statewide and municipal votes above
-    d <- d[NOME_URNA_CANDIDATO!="#NULO#"]
+    d <- d[NOME_URNA_CANDIDATO!="#NULO#" | is.na(NOME_URNA_CANDIDATO)]
     } else {
       d <- data.table("UF"                   = character(),
                       "NUMERO_PARTIDO"       = integer(),
@@ -1307,6 +1307,7 @@ server <- function(input, output, session) {
   
   output$Indicators3 <- renderUI({
     str_moran <- HTML(paste0("<b> Moran's I: </b>", round(moran_I(),3),"<br> </br>"))
+    #str_moran <- HTML(paste0("<b> Moran's I: </b>", round(moran_I,3),"<br> </br>"))
   })
 
   output$Indicators4 <- renderUI({
