@@ -1187,7 +1187,7 @@ server <- function(input, output, session) {
 
 
     d <- db_get_elections(year = as.numeric(input$Year), position = as.numeric(input$cargo), candidate_number = as.numeric(candidato_hi_local), 
-                                    state = input$State)
+                                    state = input$State, turn = turno())
     #print(candidato_hi_local)
     print(d)
     d <- data.table(d)
