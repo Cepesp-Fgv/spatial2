@@ -37,6 +37,7 @@ library(tidyr)
 
 if(!require(cepespR)) devtools::install_github("Cepesp-Fgv/cepesp-r")
 source("global.R")
+source("database.R")
 
 ui <- fluidPage(tags$head(
   tags$style(HTML(".navbar .navbar-nav {float: left}
@@ -380,15 +381,13 @@ server <- function(input, output, session) {
   
     cat("Downloading main data (uf=", uf, "; partido=", partido, ";cargo=", cargo, ";candidato=",candidato,")\n", sep = "") 
     
-    vars <- list("NUM_TURNO","UF","NUMERO_PARTIDO","ANO_ELEICAO","COD_MUN_IBGE",
-                 "QTDE_VOTOS","NUMERO_CANDIDATO","SIGLA_PARTIDO","NOME_URNA_CANDIDATO",
-                 "DESC_SIT_TOT_TURNO")
     
-    banco <- cepespR::get_elections(input$Year, cargo, candidate_number = candidato, 
-                                    state = uf, columns_list = vars)
+    banco <- db_get_elections(year = input$Year,
+                              position = cargo,
+                              candidate_number = candidato, 
+                              state = uf,
+                              turn = turno())
     
-    banco <- banco[banco$NUM_TURNO == turno(),]
-    #banco <- banco[banco$NUM_TURNO == turno,]
     end_beginning <- round(difftime(Sys.time(), start, units = "secs"), 2)
     cat("CHECK!!! (", end_beginning, "seconds)\n", sep = "")
     })
@@ -1185,12 +1184,10 @@ server <- function(input, output, session) {
   d_hi <- eventReactive(input$Extremes_row_last_clicked,{
     beginning <- Sys.time()
     candidato_hi_local <- candidato_hi()
-    vars <- list("NUM_TURNO","UF","NUMERO_PARTIDO","ANO_ELEICAO","COD_MUN_IBGE",
-                 "QTDE_VOTOS","NUMERO_CANDIDATO","SIGLA_PARTIDO","NOME_URNA_CANDIDATO",
-                 "DESC_SIT_TOT_TURNO")
-    
-    d <- cepespR::get_elections(as.numeric(input$Year), as.numeric(input$cargo), candidate_number = as.numeric(candidato_hi_local), 
-                                    state = input$State, columns_list = vars)
+
+
+    d <- db_get_elections(year = as.numeric(input$Year), position = as.numeric(input$cargo), candidate_number = as.numeric(candidato_hi_local), 
+                                    state = input$State, turn = turno())
     #print(candidato_hi_local)
     print(d)
     d <- data.table(d)
