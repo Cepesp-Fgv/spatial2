@@ -1,11 +1,7 @@
 static/cache
 .Rproj.user
 data/complete_data/
-<<<<<<< HEAD
 .Renviron
 .DS_Store
-=======
 .env
-.Renviron
 .Rhistory
->>>>>>> feature/db-get-elections
