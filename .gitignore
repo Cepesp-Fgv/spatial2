@@ -1,6 +1,7 @@
 static/cache
 .Rproj.user
 data/complete_data/
-.env
 .Renviron
+.DS_Store
+.env
 .Rhistory
