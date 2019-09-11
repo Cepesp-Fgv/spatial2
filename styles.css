@@ -1,3 +1,17 @@
+.btn-header {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+}
+
+.pad-20 {
+  padding: 20px;
+}
+
+.mt-10 {
+  margin-top: 10px !important;
+}
+
 input[type="number"] {
   max-width: 80%;
 }
@@ -12,13 +26,6 @@ div.outer {
   padding: 0;
 }
 
-/* Customize fonts */
-body, label, input, button, select { 
-  font-family: 'Helvetica Neue', Helvetica;
-  font-weight: 200;
-}
-h1, h2, h3, h4 { font-weight: 400; }
-
 #controls {
   /* Appearance */
   background-color: white;
@@ -29,6 +36,7 @@ h1, h2, h3, h4 { font-weight: 400; }
   zoom: 0.9;
   transition: opacity 500ms 1s;
 }
+
 #controls:hover {
   /* Fade in while hovering */
   opacity: 0.95;
