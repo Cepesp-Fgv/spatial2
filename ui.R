@@ -274,7 +274,7 @@ ui <- tagList(
     
     tags$head(includeCSS("styles.css")),
     tags$div(class = "btn-header", checked = NA,
-             tags$a(href = "http://www.cepesp.io/cepesp-data", class="btn btn-primary", "Ir para CepespData")),
+             tags$a(href = "http://cepespdata.io/", class="btn btn-primary", "Ir para CepespData")),
     
     
     navbarPage("Spatial Maps", theme = shinytheme("lumen"), collapsible = TRUE, fluid = TRUE,
