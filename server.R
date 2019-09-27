@@ -40,6 +40,7 @@ server <- function(input, output, session) {
     if(cargo %in% c(1,3)){
       selectizeInput("turno_value", 
                      label = NULL,
+                     selected = NULL,
                      choices = list("",
                                     "1º Turno" = 1,
                                     "2º Turno" = 2),

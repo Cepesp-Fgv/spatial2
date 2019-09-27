@@ -12,6 +12,7 @@ sidebarPanelUi <- function () {
       selectizeInput(
         "State",
         label = NULL,
+        selected = NULL,
         choices = c("", "AC", "AM", "AL", "AP", "BA", "CE", "ES", "GO", "MA", "MS", "MG", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP","TO"),
         options = list(
           placeholder = "Selecione um estado"
@@ -20,6 +21,7 @@ sidebarPanelUi <- function () {
       selectizeInput(
         "cargo",
         label = NULL,
+        selected = NULL,
         choices = c("",
           "Governador" = 3,
           "Senador"    = 5,
@@ -32,6 +34,7 @@ sidebarPanelUi <- function () {
       selectizeInput(
         "Year",
         label = NULL,
+        selected = NULL,
         choices = c("", 1998, 2002, 2006, 2010, 2014, 2018),
         options = list(
           placeholder = "Selecione um ano"
