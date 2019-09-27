@@ -270,25 +270,30 @@ aboutTabPanelUi <- function () {
   )
 }
 
-ui <- tagList(
+# ROOT UI COMPONENT
+spatial2Ui <- function () {
+  return (
     
-    tags$head(includeCSS("styles.css")),
-    tags$div(class = "btn-header", checked = NA,
-             tags$a(href = "http://cepespdata.io/", class="btn btn-primary", "Ir para CepespData")),
+    tagList(
+      
+      tags$head(includeCSS("styles.css")),
+      tags$div(class = "btn-header", checked = NA,
+               tags$a(href = "http://cepespdata.io/", class="btn btn-primary", "Ir para CepespData")),
+      
+      
+      navbarPage("Spatial Maps", theme = shinytheme("lumen"), collapsible = TRUE, fluid = TRUE,
+                 
+                 mapTabPanelUi(),
+                 graphicsTabPanelUi(),
+                 classifyTabPanelUi(),
+                 clustersTabPanelUi(),
+                 extremesTabPanelUi(),
+                 aboutTabPanelUi(),
+                 
+                 absolutePanel(id = "controls", class = "panel panel-primary", fixed = F,
+                               draggable = F, top = 60, left = 10, right = "auto", bottom = "auto",
+                               width = 260, height = "auto", sidebarPanelUi())
+    ))
     
-    
-    navbarPage("Spatial Maps", theme = shinytheme("lumen"), collapsible = TRUE, fluid = TRUE,
-                   
-       mapTabPanelUi(),
-       graphicsTabPanelUi(),
-       classifyTabPanelUi(),
-       clustersTabPanelUi(),
-       extremesTabPanelUi(),
-       aboutTabPanelUi(),
-       
-       absolutePanel(id = "controls", class = "panel panel-primary", fixed = F,
-                     draggable = F, top = 60, left = 10, right = "auto", bottom = "auto",
-                     width = 260, height = "auto", sidebarPanelUi())
   )
-
-)
+}

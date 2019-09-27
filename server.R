@@ -23,7 +23,7 @@ library(shiny)
 source("global.R")
 source("database.R")
 
-server <- function(input, output, session) {
+spatial2Server <- function(input, output, session) {
   
   ### Turno ###
   turno <- reactive({

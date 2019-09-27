@@ -28,9 +28,9 @@ library(tidyverse)
  
  candidatos_df <- bind_rows(candidatos_ls)
  
- write_rds(candidatos_df, "C:/Users/Jonny/Google Drive/Academic/FGV-SP/shiny/New_apps_2018/spatial2-2019/data/candidatos.rds")
+ write_rds(candidatos_df, "./data/candidatos.rds")
 
-candidatos_df <- read_rds('C:/Users/Jonny/Google Drive/Academic/FGV-SP/shiny/New_apps_2018/spatial2-2019/data/candidatos.rds')
+candidatos_df <- read_rds('./data/candidatos.rds')
 
 template <- candidatos_df %>% 
   filter(DES_SITUACAO_CANDIDATURA %in% c('DEFERIDO',
@@ -51,4 +51,4 @@ for(i in seq_along(template$LISTA_NUMERO)){
   names(template$LISTA_NUMERO[[i]]) <- template$LISTA_NOMES[[i]]
 }
 
-write_rds(template, "C:/Users/Jonny/Google Drive/Academic/FGV-SP/shiny/New_apps_2018/March 2019/spatial2/data/party_template.rds")
+write_rds(template, "./data/party_template.rds")
