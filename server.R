@@ -45,8 +45,7 @@ server <- function(input, output, session) {
                                     "1º Turno" = 1,
                                     "2º Turno" = 2),
                      options = list(
-                       placeholder = "Selecione um turno",
-                       allowEmptyOption=TRUE
+                       placeholder = "Selecione um turno"
                      ))
     }
   })
