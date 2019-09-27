@@ -17,7 +17,7 @@ sidebarPanelUi <- function () {
         options = list(
           placeholder = "Selecione um estado",
           allowEmptyOption=TRUE
-        ),
+        )
       ),
       selectizeInput(
         "cargo",
