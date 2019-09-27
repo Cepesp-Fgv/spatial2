@@ -15,7 +15,8 @@ sidebarPanelUi <- function () {
         selected = NULL,
         choices = c("", "AC", "AM", "AL", "AP", "BA", "CE", "ES", "GO", "MA", "MS", "MG", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP","TO"),
         options = list(
-          placeholder = "Selecione um estado"
+          placeholder = "Selecione um estado",
+          allowEmptyOption=TRUE
         ),
       ),
       selectizeInput(
@@ -28,7 +29,8 @@ sidebarPanelUi <- function () {
           "Deputado Federal" = 6,
           "Deputado Estadual" = 7),
         options = list(
-          placeholder = "Selecione um cargo"
+          placeholder = "Selecione um cargo",
+          allowEmptyOption=TRUE
         )
       ),
       selectizeInput(
@@ -37,7 +39,8 @@ sidebarPanelUi <- function () {
         selected = NULL,
         choices = c("", 1998, 2002, 2006, 2010, 2014, 2018),
         options = list(
-          placeholder = "Selecione um ano"
+          placeholder = "Selecione um ano",
+          allowEmptyOption=TRUE
         )
       ),
       uiOutput("turno_UI"),
