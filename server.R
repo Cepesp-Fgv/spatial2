@@ -38,12 +38,14 @@ server <- function(input, output, session) {
   output$turno_UI <- renderUI({
     cargo <- as.numeric(input$cargo)
     if(cargo %in% c(1,3)){
-      selectInput("turno_value", 
-                     label = "Selecione um turno:",
+      selectizeInput("turno_value", 
+                     label = NULL,
                      choices = list("",
                                     "1º Turno" = 1,
                                     "2º Turno" = 2),
-                     selected = NULL)
+                     options = list(
+                       placeholder = "Selecione um turno"
+                     ))
     }
   })
   

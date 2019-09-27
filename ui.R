@@ -9,27 +9,33 @@ sidebarPanelUi <- function () {
     tags$div(class="pad-20",
       useShinyalert(),
       h4("Opções:"),
-      selectInput(
+      selectizeInput(
         "State",
-        label = "Selecione um estado:",
+        label = NULL,
         choices = c("", "AC", "AM", "AL", "AP", "BA", "CE", "ES", "GO", "MA", "MS", "MG", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP","TO"),
-        selected = NULL
+        options = list(
+          placeholder = "Selecione um estado"
+        ),
       ),
-      selectInput(
+      selectizeInput(
         "cargo",
-        label = "Selecione um cargo:",
+        label = NULL,
         choices = c("",
           "Governador" = 3,
           "Senador"    = 5,
           "Deputado Federal" = 6,
           "Deputado Estadual" = 7),
-        selected = NULL
+        options = list(
+          placeholder = "Selecione um cargo"
+        )
       ),
-      selectInput(
+      selectizeInput(
         "Year",
-        label = "Selecione um ano:",
+        label = NULL,
         choices = c("", 1998, 2002, 2006, 2010, 2014, 2018),
-        selected = NULL
+        options = list(
+          placeholder = "Selecione um ano"
+        )
       ),
       uiOutput("turno_UI"),
       checkboxInput("eleito", "Somente Candidatos Eleitos?", value = 1),
@@ -268,7 +274,7 @@ ui <- tagList(
              tags$a(href = "http://www.cepesp.io/cepesp-data", class="btn btn-primary", "Ir para CepespData")),
     
     
-    navbarPage("Spatial Maps", theme = shinytheme("lumen"),
+    navbarPage("Spatial Maps", theme = shinytheme("lumen"), collapsible = TRUE, fluid = TRUE,
                    
        mapTabPanelUi(),
        graphicsTabPanelUi(),

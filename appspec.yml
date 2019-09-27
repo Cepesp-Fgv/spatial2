@@ -2,4 +2,4 @@ version: 0.0
 os: linux
 files:
   - source: /
-    destination: /srv/shiny-server/spatial2-test
+    destination: /srv/shiny-server/spatial2
