@@ -138,6 +138,18 @@ spatial2Server <- function(input, output, session) {
     return(candidatos_value)
   })
   
+  candidato_name <- function(cand_list, number) {
+
+    for(key in names(cand_list)){
+      value <- cand_list[key]
+      if (value == number) {
+        return(trim(gsub("\\([A-Z]+\\)", "", key)))
+      }
+    }
+    
+    return(NULL)
+  }
+  
   # query_observe <- reactive({
   #   ano <- isolate(input$Year)
   #   uf <- isolate(input$State)
@@ -236,9 +248,9 @@ spatial2Server <- function(input, output, session) {
                      cat("Starting to download banco. NULL\n")
                      return(1)
                    }
-                   
-                   nidx <- which(candidato %in% candidatos_list)
-                   cname <- trim(gsub("\\([A-Z]+\\)", "", names(candidatos_list)[nidx]))
+                  
+                   cname <- candidato_name(candidatos_list, candidato)
+                   print(cname)
                    
                    cat("Downloading main data (uf=", uf, "; partido=", partido, ";cargo=", cargo, ";candidato=",candidato,")\n", sep = "") 
                    
@@ -349,6 +361,8 @@ spatial2Server <- function(input, output, session) {
     }
     
     candidato <- isolate(input$candidato)
+    print(isolate(mun_state_contig()))
+    print(dz2)
     
     dz3_temp <- merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
     #dz3_temp <- merge(isolate(mun_state_contig),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
@@ -1048,8 +1062,8 @@ spatial2Server <- function(input, output, session) {
     candidato_hi_local <- candidato_hi()
     candidatos_list <- candidatos_values()
     
-    nidx <- which(candidato %in% candidatos_list)
-    cname <- trim(gsub("\\([A-Z]+\\)", "", names(candidatos_list)[nidx]))
+    cname <- candidato_name(candidatos_list, candidato)
+    print(cname)
     
     d <- db_get_elections(year = as.numeric(input$Year), position = as.numeric(input$cargo), candidate_number = as.numeric(candidato_hi_local), 
                           state = input$State, turn = turno(), name = cname)
