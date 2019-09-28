@@ -364,7 +364,21 @@ spatial2Server <- function(input, output, session) {
     print(isolate(mun_state_contig()))
     print(dz2)
     
-    dz3_temp <- merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
+    
+    dz3_temp <- tryCatch({
+      return(merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE))
+    }, error = function(e) {
+      print(paste0("error: ", e))
+      return(NULL)
+    }, warning = function(e) {
+      print(paste0("warning: ", e))
+      return(NULL)
+    })
+    
+    if (is.null(dz3_temp)) {
+      return(NULL)
+    }
+    
     #dz3_temp <- merge(isolate(mun_state_contig),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
     dz3_temp@data[is.na(dz3_temp@data[,"LQ"])==TRUE,"LQ"] <- 0
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"Mun_Vote_Share"] <- 0
