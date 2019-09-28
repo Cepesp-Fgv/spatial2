@@ -230,11 +230,15 @@ spatial2Server <- function(input, output, session) {
                    partido <- stringr::str_remove_all(input$Party, " ")
                    cargo <- as.numeric(input$cargo)
                    candidato <- as.numeric(input$candidato)
+                   candidatos_list <- candidatos_value()
                    
-                   if(is.null(partidos_escolhas()) | is.null(candidatos_value())){
+                   if(is.null(partidos_escolhas()) | is.null(candidatos_list)){
                      cat("Starting to download banco. NULL\n")
                      return(1)
                    }
+                   
+                   nidx <- which(candidato %in% candidatos_list)
+                   cname <- trim(gsub("\\([A-Z]+\\)", "", names(candidatos_list)[nidx]))
                    
                    cat("Downloading main data (uf=", uf, "; partido=", partido, ";cargo=", cargo, ";candidato=",candidato,")\n", sep = "") 
                    
@@ -243,7 +247,8 @@ spatial2Server <- function(input, output, session) {
                                              position = cargo,
                                              candidate_number = candidato, 
                                              state = uf,
-                                             turn = turno())
+                                             turn = turno(),
+                                             name = cname)
                    
                    end_beginning <- round(difftime(Sys.time(), start, units = "secs"), 2)
                    cat("CHECK!!! (", end_beginning, "seconds)\n", sep = "")
@@ -1041,10 +1046,13 @@ spatial2Server <- function(input, output, session) {
   d_hi <- eventReactive(input$Extremes_row_last_clicked,{
     beginning <- Sys.time()
     candidato_hi_local <- candidato_hi()
+    candidatos_list <- candidatos_values()
     
+    nidx <- which(candidato %in% candidatos_list)
+    cname <- trim(gsub("\\([A-Z]+\\)", "", names(candidatos_list)[nidx]))
     
     d <- db_get_elections(year = as.numeric(input$Year), position = as.numeric(input$cargo), candidate_number = as.numeric(candidato_hi_local), 
-                          state = input$State, turn = turno())
+                          state = input$State, turn = turno(), name = cname)
     #print(candidato_hi_local)
     print(d)
     d <- data.table(d)

@@ -8,7 +8,7 @@ conn <- DBI::dbConnect(pgdrv,
                     user = Sys.getenv("DB_USERNAME"),
                     password = Sys.getenv("DB_PASSWORD"))
 
-db_get_elections <- function (year, position, candidate_number, state, turn) {
+db_get_elections <- function (year, position, candidate_number, state, turn, name) {
     result <- dbGetQuery(conn, 
         statement = "
           SELECT 
@@ -16,8 +16,9 @@ db_get_elections <- function (year, position, candidate_number, state, turn) {
           FROM
               (SELECT * FROM votos_mun WHERE numero_candidato = $1 AND uf = $2 AND codigo_cargo = $3 AND ano_eleicao = $4 AND num_turno = $5) AS v
           JOIN candidatos c ON c.id_candidato = v.id_candidato
+          WHERE c.NOME_URNA_CANDIDATO = $6
           GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9",
-        param = list(candidate_number, state, position, year, turn)
+        param = list(candidate_number, state, position, year, turn, name)
     )
     setnames(result, toupper(names(result)))
     return(result)
