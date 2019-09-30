@@ -360,19 +360,24 @@ spatial2Server <- function(input, output, session) {
     }
     
     candidato <- isolate(input$candidato)
+    year <- isolate(input$Year)
     
-    dz3_temp <- tryCatch({
-      return(merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE))
-    }, error = function(e) {
-      print(paste0("error: ", e))
-      return(NULL)
-    }, warning = function(e) {
-      print(paste0("warning: ", e))
-      return(NULL)
-    })
-    
-    if (is.null(dz3_temp)) {
-      return(NULL)
+    if (year == 2002) {
+      dz3_temp <- tryCatch({
+        return(merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE))
+      }, error = function(e) {
+        print(paste0("error: ", e))
+        return(NULL)
+      }, warning = function(e) {
+        print(paste0("warning: ", e))
+        return(NULL)
+      })
+      
+      if (is.null(dz3_temp)) {
+        return(NULL)
+      }
+    } else {
+      dz3_temp <- merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
     }
     
     #dz3_temp <- merge(isolate(mun_state_contig),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
