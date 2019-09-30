@@ -254,7 +254,6 @@ spatial2Server <- function(input, output, session) {
                    
                    cat("Downloading main data (uf=", uf, "; partido=", partido, ";cargo=", cargo, ";candidato=",candidato,")\n", sep = "") 
                    
-                   
                    banco <- db_get_elections(year = input$Year,
                                              position = cargo,
                                              candidate_number = candidato, 
@@ -361,9 +360,6 @@ spatial2Server <- function(input, output, session) {
     }
     
     candidato <- isolate(input$candidato)
-    print(isolate(mun_state_contig()))
-    print(dz2)
-    
     
     dz3_temp <- tryCatch({
       return(merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE))
