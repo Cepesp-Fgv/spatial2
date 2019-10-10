@@ -261,6 +261,16 @@ spatial2Server <- function(input, output, session) {
                                              turn = turno(),
                                              name = cname)
                    
+                   if (dim(banco)[1]==0){
+                     banco <- db_get_elections(year = input$Year,
+                                               position = cargo,
+                                               candidate_number = candidato, 
+                                               state = uf,
+                                               turn = turno(),
+                                               name = paste0(cname," "))
+                     
+                   }
+                   
                    end_beginning <- round(difftime(Sys.time(), start, units = "secs"), 2)
                    cat("CHECK!!! (", end_beginning, "seconds)\n", sep = "")
                  })
