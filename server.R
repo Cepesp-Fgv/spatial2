@@ -362,23 +362,23 @@ spatial2Server <- function(input, output, session) {
     candidato <- isolate(input$candidato)
     year <- isolate(input$Year)
     
-    if (year == 2002) {
-      dz3_temp <- tryCatch({
-        return(merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE))
-      }, error = function(e) {
-        print(paste0("error: ", e))
-        return(NULL)
-      }, warning = function(e) {
-        print(paste0("warning: ", e))
-        return(NULL)
-      })
-      
-      if (is.null(dz3_temp)) {
-        return(NULL)
-      }
-    } else {
+  #  if (year == 2002) {
+  #    dz3_temp <- tryCatch({
+  #      return(merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE))
+  #    }, error = function(e) {
+  #      print(paste0("error: ", e))
+  #      return(NULL)
+  #    }, warning = function(e) {
+  #      print(paste0("warning: ", e))
+  #      return(NULL)
+  #    })
+  #    
+  #    if (is.null(dz3_temp)) {
+  #      return(NULL)
+  #    }
+  #  } else {
       dz3_temp <- merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
-    }
+  #  }
     
     #dz3_temp <- merge(isolate(mun_state_contig),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
     dz3_temp@data[is.na(dz3_temp@data[,"LQ"])==TRUE,"LQ"] <- 0
@@ -550,16 +550,16 @@ spatial2Server <- function(input, output, session) {
                   fillOpacity  = 0.8,
                   weight       = 0.1,
                   color        = "black",
-                  fillColor    = pal(dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share",
+                  fillColor    = pal(dz5_use@data[[switch(input$Indicator,"2"="Mun_Vote_Share",
                                                           "Medida QL" = "LQ",
                                                           "1"         = "Cand_Vote_Share")]]),
                   popup        = popup_text) %>%
       addLegend(title          = switch(input$Indicator,
                                         "Medida QL" = "Medida QL",
-                                        "Proporção de Votos" = "% Votos no <br>Município",
+                                        "2" = "% Votos no <br>Município",
                                         "1"                  = "% Votos do(a)<br>Candidato(a)"),
                 pal            = pal,
-                values         = dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share",
+                values         = dz5_use@data[[switch(input$Indicator,"2"="Mun_Vote_Share",
                                                       "Medida QL"="LQ",
                                                       "1"         = "Cand_Vote_Share")]],
                 opacity        = 0.8,
@@ -619,15 +619,15 @@ spatial2Server <- function(input, output, session) {
                   fillOpacity  = 0.8,
                   weight       = 0.1,
                   color        = "black",
-                  fillColor    = pal(dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share",
+                  fillColor    = pal(dz5_use@data[[switch(input$Indicator,"2"="Mun_Vote_Share",
                                                           "Medida QL" = "LQ",
                                                           "1"         = "Cand_Vote_Share")]])) %>%
       addLegend(title          = switch(input$Indicator,
                                         "Medida QL" = "Medida QL",
-                                        "Proporção de Votos" = "% Votos no <br>Município",
+                                        "2" = "% Votos no <br>Município",
                                         "1"                  = "% Votos do(a)<br>Candidato(a)"),
                 pal            = pal,
-                values         = dz5_use@data[[switch(input$Indicator,"Proporção de Votos"="Mun_Vote_Share",
+                values         = dz5_use@data[[switch(input$Indicator,"2"="Mun_Vote_Share",
                                                       "Medida QL"="LQ",
                                                       "1"         = "Cand_Vote_Share")]],
                 opacity        = 0.8,

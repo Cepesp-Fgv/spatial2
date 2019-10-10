@@ -49,10 +49,10 @@ sidebarPanelUi <- function () {
         label = "Indicador:",
         choices = list(
           "Proporção de Votos do Candidato" = 1,
-          "Proporção de Votos no Município" = "Proporção de Votos",
+          "Proporção de Votos no Município" = 2,
           "Medida QL"
         ),
-        selected = "Proporção de Votos"
+        selected = "2"
       ),
       actionButton("button", label = strong("Atualizar"), class = "btn-primary btn-block"),
       bsTooltip(
