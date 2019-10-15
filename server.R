@@ -143,7 +143,7 @@ spatial2Server <- function(input, output, session) {
     for(key in names(cand_list)){
       value <- cand_list[key]
       if (value == number) {
-        return(trim(gsub("\\([A-Z]+\\)", "", key)))
+        return(trim(gsub("\\([a-zA-Z\- ]+\\)", "", key)))
       }
     }
     
