@@ -261,16 +261,6 @@ spatial2Server <- function(input, output, session) {
                                              turn = turno(),
                                              name = cname)
                    
-                   if (dim(banco)[1]==0){
-                     banco <- db_get_elections(year = input$Year,
-                                               position = cargo,
-                                               candidate_number = candidato, 
-                                               state = uf,
-                                               turn = turno(),
-                                               name = paste0(cname," "))
-                     
-                   }
-                   
                    end_beginning <- round(difftime(Sys.time(), start, units = "secs"), 2)
                    cat("CHECK!!! (", end_beginning, "seconds)\n", sep = "")
                  })
@@ -372,23 +362,7 @@ spatial2Server <- function(input, output, session) {
     candidato <- isolate(input$candidato)
     year <- isolate(input$Year)
     
-  #  if (year == 2002) {
-  #    dz3_temp <- tryCatch({
-  #      return(merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE))
-  #    }, error = function(e) {
-  #      print(paste0("error: ", e))
-  #      return(NULL)
-  #    }, warning = function(e) {
-  #      print(paste0("warning: ", e))
-  #      return(NULL)
-  #    })
-  #    
-  #    if (is.null(dz3_temp)) {
-  #      return(NULL)
-  #    }
-  #  } else {
-      dz3_temp <- merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
-  #  }
+    dz3_temp <- merge(isolate(mun_state_contig()),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
     
     #dz3_temp <- merge(isolate(mun_state_contig),dz2, by.x="GEOCOD",by.y="COD_MUN_IBGE",all.x=TRUE,all.y=FALSE)
     dz3_temp@data[is.na(dz3_temp@data[,"LQ"])==TRUE,"LQ"] <- 0
@@ -397,7 +371,13 @@ spatial2Server <- function(input, output, session) {
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"Tot_Deputado"] <- mean(dz3_temp@data[,"Tot_Deputado"],na.rm=TRUE)
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"NOME_URNA_CANDIDATO"] <- candidato
     dz3_temp$Tot_Mun <- NULL
-    dz3_temp <- merge(dz3_temp,isolate(mun_totals()),by.x="GEOCOD",by.y="COD_MUN_IBGE")
+    
+    # Removes duplicates from mun_totals()
+    mun_t <- isolate(mun_totals())
+    mun_t <- mun_t[!duplicated(mun_t$COD_MUN_IBGE), ]
+    
+    dz3_temp <- merge(dz3_temp, mun_t, by.x="GEOCOD", by.y="COD_MUN_IBGE")
+    
     #dz3_temp <- merge(dz3_temp,isolate(mun_totals),by.x="GEOCOD",by.y="COD_MUN_IBGE")
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"QTDE_VOTOS"] <- 0
     end <- Sys.time()
