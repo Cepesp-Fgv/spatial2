@@ -3,13 +3,16 @@ library(DBI)
 
 pgdrv <- dbDriver(drvName = "PostgreSQL")
 
+db_connect <- function() {
+    return(DBI::dbConnect(pgdrv,
+                          dbname=Sys.getenv("DB_DATABASE"),
+                          host=Sys.getenv("DB_HOST"), port=5432,
+                          user = Sys.getenv("DB_USERNAME"),
+                          password = Sys.getenv("DB_PASSWORD")))
+}
 
-db_get_elections <- function (year, position, candidate_number, state, turn, name = NULL) {
-    conn <- DBI::dbConnect(pgdrv,
-                           dbname=Sys.getenv("DB_DATABASE"),
-                           host=Sys.getenv("DB_HOST"), port=5432,
-                           user = Sys.getenv("DB_USERNAME"),
-                           password = Sys.getenv("DB_PASSWORD"))
+db_get_elections <- function (year, position, candidate_number, state, turn, name) {
+    conn <- db_connect()
     
     result <- dbGetQuery(conn, 
         statement = "
@@ -28,5 +31,30 @@ db_get_elections <- function (year, position, candidate_number, state, turn, nam
     setnames(result, toupper(names(result)))
     
     return(result)
+}
+
+db_get_party_elections <- function (year, position, candidate_or_party_number, state, turn) {
+    conn <- db_connect()
     
+    party_number <- substr(as.character(candidate_or_party_number), 1, 2)
+    result <- dbGetQuery(conn, 
+                         statement = "
+          SELECT 
+              v.NUM_TURNO, v.UF, v.ANO_ELEICAO, v.COD_MUN_IBGE, cast(substr(cast(v.NUMERO_CANDIDATO as varchar), 1, 2) as integer) as NUMERO_PARTIDO, SUM(v.QTDE_VOTOS) AS QTDE_VOTOS
+          FROM
+              (SELECT * FROM votos_mun
+                  WHERE substr(cast(numero_candidato as varchar), 1, 2) = $1 
+                    AND uf = $2
+                    AND codigo_cargo = $3
+                    AND ano_eleicao = $4
+                    AND num_turno = $5) AS v
+          GROUP BY 1, 2, 3, 4, 5",
+                         param = list(party_number, state, position, year, turn)
+    )
+    
+    DBI::dbDisconnect(conn)
+    
+    setnames(result, toupper(names(result)))
+    
+    return(result)
 }
