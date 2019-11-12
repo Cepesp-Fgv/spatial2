@@ -93,7 +93,7 @@ sidebarPanelUi <- function () {
       ),
       conditionalPanel(
         condition = 'input.button > 0',
-        downloadButton('map_down', class="btn btn-success btn-block mt-10", label = "Download")
+        downloadButton('downloadMap', class="btn btn-success btn-block mt-10", label = "Download")
       )
     )
   )
