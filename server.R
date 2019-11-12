@@ -629,24 +629,25 @@ spatial2Server <- function(input, output, session) {
                   stroke       = TRUE)
   })
   
-  output$map_down <- downloadHandler(
-    filename = paste0(paste("CepespData",
-                            input$Year, 
-                            input$State, 
-                            input$cargo,
-                            "Turno", 
-                            input$turno_value, 
-                            input$Party, 
-                            unique(dz5()@data[,"NOME_URNA_CANDIDATO"]), 
-                            sep="_"),
-                      ".png")
-    
-    , content = function(file) {
+  output$downloadMap <- downloadHandler(
+    filename = function () {
+      paste0(paste("CepespData",
+                    input$Year, 
+                    input$State, 
+                    input$cargo,
+                    "Turno", 
+                    input$turno_value, 
+                    input$Party, 
+                    unique(dz5()@data[,"NOME_URNA_CANDIDATO"]), 
+                    sep="_"),
+              ".png")
+    },
+    content = function(file) {
       mapshot( x = map_reactive()
                , file = file
                , selfcontained = FALSE # when this was not specified, the function for produced a PDF of two pages: one of the leaflet map, the other a blank page.
       )
-    } # end of content() function
+    }
   )
   
   ### End ###
