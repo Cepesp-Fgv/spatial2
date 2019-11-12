@@ -631,7 +631,7 @@ spatial2Server <- function(input, output, session) {
   
   output$downloadMap <- downloadHandler(
     filename = function () {
-      paste0(paste("CepespData",
+      return(paste0(paste("CepespData",
                     input$Year, 
                     input$State, 
                     input$cargo,
@@ -640,7 +640,7 @@ spatial2Server <- function(input, output, session) {
                     input$Party, 
                     unique(dz5()@data[,"NOME_URNA_CANDIDATO"]), 
                     sep="_"),
-              ".png")
+              ".png"))
     },
     content = function(file) {
       mapshot( x = map_reactive()
