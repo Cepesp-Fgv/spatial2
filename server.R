@@ -871,7 +871,7 @@ spatial2Server <- function(input, output, session) {
   })
   
   output$Note <- renderUI({
-    note <- paste0("<font size='3'> As mapas eleitorais foram desenvolvidos utilizando os dados coletados e limpos pelo <a href='http://cepesp.io/'> CepespData </a>. Desenvolvido por Jonathan Phillips e Rafael de Castro Coelho Silva com apoio do equipe CEPESP. </font>")
+    note <- paste0("<font size='3'> Os mapas eleitorais foram desenvolvidos no âmbito do projeto temático da FAPESP (processo # 2013/15658-1), sob coordenação do Prof. George Avelino. Eles utilizam os dados do TSE coletados e limpos pela equipe do <a href='http://cepesp.io/'> CEPESPData</a>. Desenvolvido por Jonathan Phillips e Rafael de Castro Coelho Silva com apoio dos pesquisadores do CEPESP. </font>")
     HTML(note)
   })
   
