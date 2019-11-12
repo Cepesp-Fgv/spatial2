@@ -1028,9 +1028,10 @@ spatial2Server <- function(input, output, session) {
     filtered <- rbind(filtered,filtered_low) %>%
       mutate(NUMERO_PARTIDO=as.numeric(substr(NUMERO_CANDIDATO,1,2)))
     
-    parties <- melt(data.frame("PRB"=10,"PP"=11,"PDT"=12,"PT"=13,"PTB"=14,"PMDB"=15,"PSTU"=16,"PSL"=17,"REDE"=18,"PTN"=19,"PSC"=20,"PCB"=21,"PR"=22,"PPS"=23,"DEM"=25,"PSDC"=27,"PRTB"=28,"PCO"=29,"NOVO"=30,"PHS"=31,"PMN"=33,"PMB"=35,"PTC"=36,"PSB"=40,"PV"=43,"PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,"PSD"=55,"PCdoB"=65,"PTdoB"=70,"SD"=77,"PROS"=90))
-    filtered <- merge(filtered,parties,by.x="NUMERO_PARTIDO",by.y="value",all.x=TRUE,all.y=FALSE) %>%
-      dplyr::rename("Party"=variable)
+    parties <- data.frame(Party=c("PRB","PP","PDT","PT","PTB","PMDB","PSTU","PSL","REDE","PTN","PSC","PCB","PR","PPS","DEM","PSDC","PRTB","PCO","NOVO","PHS","PMN","PMB","PTC","PSB","PV","PRP","PSDB","PSOL","PEN","PPL","PSD","PCdoB","PTdoB","SD","PROS"),
+                          NUMERO_PARTIDO=c(10,11,12,13,14,15,16,17,18,19,20,21,22,23,25,27,28,29,30,31,33,35,36,40,43,44,45,50,51,54,55,65,70,77,90))
+      
+    filtered <- merge(filtered,parties,by="NUMERO_PARTIDO",all.x=TRUE,all.y=FALSE)
     
     filtered <- as.data.table(filtered)
     filtered <- filtered  %>% arrange(desc(G_Index)) %>% dplyr::select(NUMERO_CANDIDATO,NOME_URNA_CANDIDATO,Party,G_Index,Moran_I)
