@@ -245,7 +245,8 @@ spatial2Server <- function(input, output, session) {
                                      "PRP"=44,"PSDB"=45,"PSOL"=50,"PEN"=51,"PPL"=54,
                                      "PSD"=55,"PC do B"=65,"PT do B"=70,"SD"=77,"PROS"=90,
                                      "PAN"=26,"PGT"=30,"PST"=18,"PL"=22,"PRONA"=56,"PRP"=44,
-                                     "PEN"=44,"PPL"=54,"PHS"=31)
+                                     "PEN"=44,"PPL"=54,"PHS"=31,"MDB"=15,"CDN"=23,"REP"=10,
+                                     "PMN"=33,"AVANTE"=70,"DC"=27,"SD"=77,"PODE"=19,"PATRI"=51)
                    
                    #Adjustment because old PSD (up to 2002) is 41 but clashes with new PSD
                    partido <- case_when(input$Party=="PSD" & input$Year<=2002~41,
