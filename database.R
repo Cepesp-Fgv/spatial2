@@ -38,3 +38,24 @@ db_get_elections <- function (year, position, candidate_number, state, turn, nam
     return(result)
     
 }
+
+db_get_party_elections <- function (year, position, candidate_or_party_number, state, turn) {
+  
+  party_number <- substr(as.character(candidate_or_party_number), 1, 2)
+  result <- dbGetQuery(conn, 
+                       statement = "
+          SELECT 
+              v.NUM_TURNO, v.UF, v.ANO_ELEICAO, v.COD_MUN_IBGE, cast(substr(cast(v.NUMERO_CANDIDATO as varchar), 1, 2) as integer) as NUMERO_PARTIDO, SUM(v.QTDE_VOTOS) AS QTDE_VOTOS
+          FROM
+              (SELECT * FROM votos_mun
+                  WHERE substr(cast(numero_candidato as varchar), 1, 2) = $1 
+                    AND uf = $2
+                    AND codigo_cargo = $3
+                    AND ano_eleicao = $4
+                    AND num_turno = $5) AS v
+          GROUP BY 1, 2, 3, 4, 5",
+                       param = list(party_number, state, position, year, turn))
+  
+  setnames(result, toupper(names(result)))
+  return(result)
+}

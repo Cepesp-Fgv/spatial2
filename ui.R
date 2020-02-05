@@ -41,14 +41,12 @@ sidebarPanelUi <- function () {
         )
       ),
       uiOutput("turno_UI"),
-      checkboxInput("eleito", "Somente Candidatos Eleitos?", value = 1),
       uiOutput("party_UI"),
-      uiOutput("cand_UI"),
       radioButtons(
         "Indicator",
         label = "Indicador:",
         choices = list(
-          "Proporção de Votos do Candidato" = 1,
+          "Proporção de Votos do Partido" = 1,
           "Proporção de Votos no Município" = 2,
           "Medida QL"
         ),
@@ -69,15 +67,7 @@ sidebarPanelUi <- function () {
       ),
       radioTooltip(
         id = "Indicator",
-        choice = 1,
-        title = "O percentual de votos no candidato em todo o estado recebidos em cada município.",
-        placement = "right",
-        trigger = "hover",
-        options = list(container = "body")
-      ),
-      radioTooltip(
-        id = "Indicator",
-        choice = "Proporção de Votos",
+        choice = 2,
         title = "O percentual de votos válidos no município recebidos pelo candidato.",
         placement = "right",
         trigger = "hover",
@@ -165,100 +155,6 @@ mapTabPanelUi <- function () {
   ))
 }
 
-graphicsTabPanelUi <- function () {
-  return (
-    tabPanel(
-      "Gráficos",
-      fluidRow(
-        column(width = 3, ""),
-        column(width = 4, plotOutput("QL_dist")),
-        column(
-          width = 4,
-          plotOutput("G_cand", height = "200px"),
-          plotOutput("I_cand", height = "200px")
-        )
-      ),
-      bootstrapPage(
-        absolutePanel(
-          id = "cuts",
-          class = "panel panel-default pad-20",
-          fixed = TRUE,
-          draggable = TRUE,
-          top = "auto",
-          left = "auto",
-          right = 30,
-          bottom = 5,
-          width = 700,
-          height = "auto",
-          h5("Vencedores têm suporte mais difuso (baixo G) e contíguo (alto I)"),
-          radioButtons(
-            "Cut",
-            label = "Data:",
-            choices = list("All", "Selected Year", "Selected State", "Selected Party"),
-            selected = "All"
-          )
-        )
-      )
-    )
-  )
-}
-
-classifyTabPanelUi <- function () {
-  return (
-    tabPanel(
-      "Classificar",
-      column(width = 3, ""),
-      column(
-        width = 8,
-        plotOutput("quadrant", click = "plot_click", hover = "plot_hover"),
-        uiOutput("hover_info"),
-        htmlOutput("Classify_Note"),
-        htmlOutput("Classify_Note2")
-      )
-    )
-  )
-}
-
-clustersTabPanelUi <- function () {
-  return (
-    tabPanel(
-      "Clusters",
-      column(width = 3, ""),
-      column(
-        width = 4,
-        htmlOutput("Num_clusters"),
-        h4("Cluster Summary"),
-        dataTableOutput("Clusters_agg"),
-        h4("Municipalities by Cluster"),
-        dataTableOutput("Clusters")
-      ),
-      column(width = 1, ""),
-      column(
-        width = 3,
-        leafletOutput("map_clusters", width = "500px", height = "400px")
-      )
-    )
-  )
-}
-
-extremesTabPanelUi <- function () {
-  return (
-    tabPanel(
-      "Extremos",
-      column(width = 3, ""),
-      column(
-        width = 4,
-        h4("Top and Bottom 5 G Index in this State and Year"),
-        dataTableOutput("Extremes")
-      ),
-      column(width = 1, ""),
-      column(
-        width = 3,
-        leafletOutput("map_selected_hi", width = "500px", height = "400px")
-      )
-    )
-  )
-}
 
 aboutTabPanelUi <- function () {
   return (
@@ -281,13 +177,9 @@ spatial2Ui <- function () {
                tags$a(href = "http://cepespdata.io/", class="btn btn-primary", "Ir para CepespData")),
       
       
-      navbarPage("Spatial Maps", theme = shinytheme("lumen"), collapsible = TRUE, fluid = TRUE,
+      navbarPage("Spatial Maps - Partidos", theme = shinytheme("lumen"), collapsible = TRUE, fluid = TRUE,
                  
                  mapTabPanelUi(),
-                 graphicsTabPanelUi(),
-                 classifyTabPanelUi(),
-                 clustersTabPanelUi(),
-                 extremesTabPanelUi(),
                  aboutTabPanelUi(),
                  
                  absolutePanel(id = "controls", class = "panel panel-primary", fixed = F,
