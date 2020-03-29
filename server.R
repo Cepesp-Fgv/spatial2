@@ -23,6 +23,17 @@ library(shiny)
 source("global.R")
 source("database.R")
 
+input <- tibble::tibble(cargo = 7,
+                        Year = 2018,
+                        turno = 1,
+                      Party = "PSL",
+                        State  = "SP",
+                        candidato = "17079",
+                        eleito = 0,
+                      indicator="Medida QL"
+)
+#turno_use <- turno <- input$turno
+
 spatial2Server <- function(input, output, session) {
   
   ### Turno ###
@@ -150,7 +161,7 @@ spatial2Server <- function(input, output, session) {
     return(NULL)
   }
   
-  # query_observe <- reactive({
+    # query_observe <- reactive({
   #   ano <- isolate(input$Year)
   #   uf <- isolate(input$State)
   #   cargo <- isolate(as.numeric(input$cargo))
@@ -223,12 +234,7 @@ spatial2Server <- function(input, output, session) {
   
   ### Test Query ###
   
-  # input <- tibble::tibble(cargo = 6,
-  #                         Year = 2014,
-  #                         turno = 1,
-  #                         Party = "PRB",
-  #                         State  = "CE",
-  #                         candidato = "1010")
+
   # url <- "http://api.cepesp.io/api/consulta/tse"
   
   banco <- eventReactive(input$button, {
@@ -303,10 +309,10 @@ spatial2Server <- function(input, output, session) {
         #### G-Index Calcs
         d[,G_temp := (QTDE_VOTOS/Tot_Deputado - Tot_Mun/Tot_State)^2]
         d[,G_Index := sum(G_temp),by=.(ANO_ELEICAO,UF,NUMERO_CANDIDATO)] #Correct? CHECK
-        
+ 
         #### LQ Calcs
         d[,LQ := (QTDE_VOTOS/Tot_Deputado)/(Tot_Mun/Tot_State),by=.(ANO_ELEICAO,UF,NUMERO_CANDIDATO)] #Correct?
-        
+      
         #Remove NULO line from selectable candidates, though is included in calculations of total statewide and municipal votes above
         d <- d[NOME_URNA_CANDIDATO!="#NULO#" | is.na(NOME_URNA_CANDIDATO)]
       } else {
@@ -369,11 +375,12 @@ spatial2Server <- function(input, output, session) {
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"Mun_Vote_Share"] <- 0
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"Tot_State"] <- mean(dz3_temp@data[,"Tot_State"],na.rm=TRUE)
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"Tot_Deputado"] <- mean(dz3_temp@data[,"Tot_Deputado"],na.rm=TRUE)
-    dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"NOME_URNA_CANDIDATO"] <- candidato
+    dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"NOME_URNA_CANDIDATO"] <- cname
     dz3_temp$Tot_Mun <- NULL
     
     # Removes duplicates from mun_totals()
     mun_t <- isolate(mun_totals())
+    #mun_t <- mun_totals
     mun_t <- mun_t[!duplicated(mun_t$COD_MUN_IBGE), ]
     
     dz3_temp <- merge(dz3_temp, mun_t, by.x="GEOCOD", by.y="COD_MUN_IBGE")
@@ -491,7 +498,7 @@ spatial2Server <- function(input, output, session) {
       pal <- colorBin(palette  = c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),
                       domain   = c(0,1000),
                       bins     = c(0,0.01,1,5,10,50,1000),
-                      na.color = "white")
+                      na.color = "#cb181d")
     } else if(input$Indicator == "1") {
       pal <- colorNumeric(palette  = c("white","red"),
                           domain   = c(0,max(dz5_use@data[["Cand_Vote_Share"]],na.rm=TRUE)),
@@ -510,7 +517,7 @@ spatial2Server <- function(input, output, session) {
                          " votos (",
                          round((dz5_use@data[,"QTDE_VOTOS"] / dz5_use@data[,"Tot_Deputado"])*100,1),
                          "% do total recebido pelo candidato(a) no estado). </br>",
-                         "</br> Votos váliados no município: ",
+                         "</br> Votos válidos no município: ",
                          dz5_use@data[,"Tot_Mun"],
                          " (",
                          round((dz5_use@data[,"Tot_Mun"] / dz5_use@data[,"Tot_State"])*100,1),
@@ -553,7 +560,7 @@ spatial2Server <- function(input, output, session) {
                                                       "Medida QL"="LQ",
                                                       "1"         = "Cand_Vote_Share")]],
                 opacity        = 0.8,
-                labFormat      = labelFormat(suffix = "%"))  %>%
+                labFormat      = labelFormat(suffix = ifelse(input$indicator=="Medida QL","","%")))  %>%
       addPolygons(data         = dz5_use[dz5_use@data$category=="High-High",],
                   fillOpacity  = 0,
                   weight       = 2,
@@ -573,12 +580,11 @@ spatial2Server <- function(input, output, session) {
     
     geo <- as.numeric(st_bbox(state_shp()))
     
-    
     if (input$Indicator == "Medida QL"){
       pal <- colorBin(palette  = c("white","light blue","#fcbba1","#fb6a4a","#ef3b2c","#cb181d"),
                       domain   = c(0,1000),
                       bins     = c(0,0.01,1,5,10,50,1000),
-                      na.color = "white")
+                      na.color = "#cb181d")
     } else if(input$Indicator == "1") {
       pal <- colorNumeric(palette  = c("white","red"),
                           domain   = c(0,max(dz5_use@data[["Cand_Vote_Share"]],na.rm=TRUE)),
@@ -621,7 +627,7 @@ spatial2Server <- function(input, output, session) {
                                                       "Medida QL"="LQ",
                                                       "1"         = "Cand_Vote_Share")]],
                 opacity        = 0.8,
-                labFormat      = labelFormat(suffix = "%"))  %>%
+                labFormat      = labelFormat(suffix = ifelse(input$indicator=="Medida QL","","%")))  %>%
       addPolygons(data         = dz5_use[dz5_use@data$category=="High-High",],
                   fillOpacity  = 0,
                   weight       = 2,
