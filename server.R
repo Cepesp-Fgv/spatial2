@@ -23,15 +23,15 @@ library(shiny)
 source("global.R")
 source("database.R")
 
-input <- tibble::tibble(cargo = 7,
-                        Year = 2018,
-                        turno = 1,
-                      Party = "PSL",
-                        State  = "SP",
-                        candidato = "17079",
-                        eleito = 0,
-                      indicator="Medida QL"
-)
+#input <- tibble::tibble(cargo = 7,
+#                        Year = 2018,
+#                        turno = 1,
+#                        Party = "PSL",
+#                        State  = "SP",
+#                        candidato = "17079",
+#                        eleito = 0,
+#                        indicator="Medida QL"
+#)
 #turno_use <- turno <- input$turno
 
 spatial2Server <- function(input, output, session) {
@@ -375,7 +375,7 @@ spatial2Server <- function(input, output, session) {
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"Mun_Vote_Share"] <- 0
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"Tot_State"] <- mean(dz3_temp@data[,"Tot_State"],na.rm=TRUE)
     dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"Tot_Deputado"] <- mean(dz3_temp@data[,"Tot_Deputado"],na.rm=TRUE)
-    dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"NOME_URNA_CANDIDATO"] <- cname
+    dz3_temp@data[is.na(dz3_temp@data[,"QTDE_VOTOS"])==TRUE,"NOME_URNA_CANDIDATO"] <- as.character(na.exclude(unique(dz3_temp@data[,"NOME_URNA_CANDIDATO"])))
     dz3_temp$Tot_Mun <- NULL
     
     # Removes duplicates from mun_totals()
